@@ -106,11 +106,15 @@ export const authOptions: AuthOptions = {
     },
 
     async redirect({ url, baseUrl }) {
-      // 추가 정보 입력 페이지로 가는 경우 등
-      if (url.startsWith('/signup')) {
-        return `${baseUrl}/signup`;
+      // ✅ 로그인 직후 처리 경로 (SSO vs 일반 로그인 분기)
+      if (url.includes('kakao')) {
+        console.log('카카오 로그인페이지였음')
+        // 카카오 로그인 완료 → 추가정보 입력으로 바로 이동
+        return `${baseUrl}/signup/extra`;
       }
-      return baseUrl;
+
+      // 일반 로그인
+      return `${baseUrl}/`;
     },
   },
 

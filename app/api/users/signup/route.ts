@@ -23,20 +23,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 중복 검사
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [{ nickname }],
-      },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { message: '다른 사람이 사용하는 닉네임입니다.' },
-        { status: 409 }
-      );
-    }
-
     // 비밀번호 & 핀 암호화
     const hashedPassword = await bcrypt.hash(password, 10);
     const hashedPin = await bcrypt.hash(pinNumber, 10);
@@ -55,13 +41,13 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { message: '회원가입 성공', userId: user.id },
-      { status: 201 }
+      { success: true, message: '회원가입 성공' },
+      { status: 200 }
     );
   } catch (error) {
     console.error('[SIGNUP_ERROR]', error);
     return NextResponse.json(
-      { message: '서버 오류가 발생했습니다.' },
+      { success: false, message: '서버 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
