@@ -9,7 +9,6 @@ import { useUserAddressStore } from '@libs/stores/userAddresses/userAddressStore
 import { parseStepUrl } from '@utils/stepUrlParser';
 import RadioButtonGroup from '@/(anon)/_components/common/radioButtonGroup/RadioButtonGroup';
 import Button from '@/(anon)/_components/common/button/Button';
-import { LegacyContentSection } from './types';
 import LoadingOverlay from '@/(anon)/_components/common/loading/LoadingOverlay';
 
 interface RadioGroupProps {
@@ -261,7 +260,6 @@ const RadioGroup = ({ title, subtitle, data }: RadioGroupProps) => {
     }
 
     // 전체 질문 수 계산
-    //let totalQuestions = 0;
     let allQuestionTitles: string[] = [];
 
     if (contentData?.dataType === 'CombinedContent' && contentData.sections) {
@@ -275,14 +273,10 @@ const RadioGroup = ({ title, subtitle, data }: RadioGroupProps) => {
         )
           .filter((item: Record<string, unknown>) => item.title)
           .map((item: Record<string, unknown>) => item.title as string);
-        //totalQuestions = allQuestionTitles.length;
       }
     } else {
       // 기존 방식: data 배열에서 질문 제목 추출
       const flatData = (dataSource as LegacyContentSection[][]).flat();
-      // totalQuestions = flatData.filter(
-      //   (section: LegacyContentSection) => section.title
-      // ).length;
       allQuestionTitles = flatData
         .filter((section: LegacyContentSection) => section.title)
         .map((section) => section.title as string);

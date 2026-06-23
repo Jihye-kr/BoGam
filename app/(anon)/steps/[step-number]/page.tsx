@@ -44,18 +44,17 @@ interface StepResultResponse {
 }
 
 
-
 // 메타데이터 생성 함수
-export async function generateMetadata({ 
-  params 
-}: { 
-  params: Promise<{ 'step-number': string }> 
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ 'step-number': string }>
 }): Promise<Metadata> {
   const { 'step-number': stepNumber } = await params;
-  
+
   // step-number 유효성 검사
   validateStepNumber(stepNumber);
-  
+
   // 환경별 API URL 설정
   const isProduction = process.env.NODE_ENV === 'production';
   const baseUrl = isProduction ? 'https://lion5-bogam.site' : 'http://localhost:3000';
@@ -110,16 +109,16 @@ export async function generateMetadata({
   };
 }
 
-export default async function MiddleStepPage({ 
-  params 
-}: { 
-  params: Promise<{ 'step-number': string }> 
+export default async function MiddleStepPage({
+  params
+}: {
+  params: Promise<{ 'step-number': string }>
 }) {
   const { 'step-number': stepNumber } = await params;
-  
+
   // step-number 유효성 검사
   validateStepNumber(stepNumber);
-  
+
   // 환경별 API URL 설정
   const isProduction = process.env.NODE_ENV === 'production';
   const baseUrl = isProduction ? 'https://lion5-bogam.site' : 'http://localhost:3000';
@@ -143,8 +142,6 @@ export default async function MiddleStepPage({
   }
 
   // 서버에서 선택된 주소 가져오기
-  // 임시로 전체 주소를 가져와서 isSelected가 true인 주소를 가져옴
-  // 추후 선택된 주소를 가져오는 api가 구현되면 해당 api를 사용하는 로직으로 변경
   let selectedAddressNickname: string | null = null;
   try {
     const cookieStore = await cookies();
@@ -196,10 +193,10 @@ export default async function MiddleStepPage({
 
   // 서버에서 FlipPages 렌더링
   const flipPages = FlipPages({ pages, stepNumber });
-  
+
   // 단계별 맞춤 JSON-LD 구조화 데이터 생성
   const jsonLd = getStepSpecificJsonLd(stepNumber, pages);
-  
+
   return (
     <>
       {/* JSON-LD 구조화 데이터 */}
@@ -207,12 +204,12 @@ export default async function MiddleStepPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      
+
       <main className={styles.mainContainer} role="main">
         <header className={styles.stateIconArea} role="banner">
           <h1 className={styles.srOnly}>{stepNumber}단계: 전세 안전 가이드</h1>
           <section aria-label="진행 상황" className={styles.progressContainer}>
-            <ProgressBarChart 
+            <ProgressBarChart
               stepNumber={stepNumber}
               userAddressNickname={selectedAddressNickname || ''}
               initialData={{
@@ -223,7 +220,7 @@ export default async function MiddleStepPage({
             />
           </section>
         </header>
-        
+
         <section className={styles.flipBookArea} aria-label="단계별 가이드">
           <FlipBookSection
             flipPages={flipPages}
@@ -233,4 +230,4 @@ export default async function MiddleStepPage({
       </main>
     </>
   );
- }
+}

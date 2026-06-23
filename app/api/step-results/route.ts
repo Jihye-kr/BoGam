@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
     const stepNumber = searchParams.get('stepNumber');
     const detail = searchParams.get('detail');
 
+    console.log('🔍 GET /api/step-results 요청 파라미터:', { userAddressNickname, stepNumber, detail });
+
     if (!userAddressNickname) {
       console.log('❌ userAddressNickname이 없음');
       return NextResponse.json(

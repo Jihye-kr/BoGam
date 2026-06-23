@@ -41,26 +41,21 @@ export async function getUserAddressId(
   userAddressNickname: string
 ): Promise<number | null> {
   try {
-    // 세션에서 user nickname 추출
     const userNickname = await getUserNicknameFromSession();
 
     if (!userNickname) {
-      console.error('❌ 세션에서 user nickname을 가져올 수 없습니다.');
       return null;
     }
 
-    // user nickname으로 user id 추출
     const userId = await getUserIdByNickname(userNickname);
 
     if (!userId) {
-      console.error('❌ user ID를 가져올 수 없습니다.');
       return null;
     }
 
-    // userAddress 조회
     const userAddress = await prisma.userAddress.findFirst({
       where: {
-        nickname: userAddressNickname, // userAddressNickname 사용
+        nickname: userAddressNickname,
         userId,
       },
       select: { id: true },

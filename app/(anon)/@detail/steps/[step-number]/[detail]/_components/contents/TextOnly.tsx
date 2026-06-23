@@ -78,32 +78,27 @@ const TextOnly = ({ data, currentPage }: TextOnlyProps) => {
     stepResultData && 'jsonDetails' in stepResultData
       ? stepResultData.jsonDetails
       : undefined;
-  //console.log('currentPage', currentPage);
   // currentPage가 변경될 때마다 해당 슬라이드를 읽음 처리
   useEffect(() => {
     if (data.length === 0 || !jsonDetails) {
       return;
     }
 
-    // currentPage가 유효하지 않으면 리턴
     if (typeof currentPage !== 'number' || isNaN(currentPage)) {
       return;
     }
 
-    // 현재 슬라이드가 이미 읽음 처리되었는지 확인
     const slideKey = `읽음_슬라이드${currentPage + 1}`;
     if (jsonDetails[slideKey] === 'match') {
       return;
     }
 
     if (selectedAddress?.id && stepInfo?.stepNumber && stepInfo?.detail) {
-      // 기존 jsonDetails에서 현재 슬라이드만 match로 변경
       const updatedDetails = {
         ...jsonDetails,
         [slideKey]: 'match' as const,
       };
 
-      // DB 저장
       upsertStepResult.mutate({
         userAddressNickname: selectedAddress.nickname,
         stepNumber: stepInfo.stepNumber,
@@ -111,7 +106,6 @@ const TextOnly = ({ data, currentPage }: TextOnlyProps) => {
         jsonDetails: updatedDetails,
       });
 
-      // 쿼리 완전 중단
       removeQueries(
         selectedAddress.nickname,
         stepInfo.stepNumber,
@@ -151,7 +145,7 @@ const TextOnly = ({ data, currentPage }: TextOnlyProps) => {
   const renderStepData = () => {
     const slideKey = `읽음_슬라이드${currentPage + 1}`;
     const slideValue = jsonDetails?.[slideKey];
-    
+
     return (
       <div className={styles.stepDataSection}>
         <div className={styles.badgeContainer}>

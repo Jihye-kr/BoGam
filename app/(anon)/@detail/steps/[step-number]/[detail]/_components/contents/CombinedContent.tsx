@@ -9,7 +9,6 @@ import { ContentSection } from './types';
 import DataGrid from './DataGrid';
 import TextOnly from './TextOnly';
 import Table from './Table';
-import List from './List';
 import CheckListGroup from './CheckListGroup';
 import RadioGroup from './RadioGroup';
 import { RealEstateContainer } from '@/(anon)/@detail/steps/[step-number]/[detail]/_components/contents/realEstate/realEstateContainer/RealEstateContainer';
