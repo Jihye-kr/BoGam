@@ -60,38 +60,19 @@ export const validateTransactionSearch = (
  * @returns 포맷팅된 거래 금액
  */
 export const formatTransactionAmount = (amount: string): string => {
-  console.log('🔍 formatTransactionAmount 입력값:', {
-    amount,
-    type: typeof amount,
-    length: amount?.length,
-  });
-
   if (!amount || amount === '0') {
-    console.log('🔍 formatTransactionAmount - 전월세 반환 (조건 1)');
     return '전월세';
   }
 
   const numAmount = parseInt(amount, 10);
-  console.log('🔍 formatTransactionAmount - 숫자 변환:', {
-    original: amount,
-    parsed: numAmount,
-    isNaN: isNaN(numAmount),
-  });
 
   if (isNaN(numAmount) || numAmount === 0) {
-    console.log('🔍 formatTransactionAmount - 전월세 반환 (조건 2)');
     return '전월세';
   }
 
   // 만원 단위를 억/만/천 단위로 변환
   const 억 = Math.floor(numAmount / 10000);
   const 천만 = Math.floor((numAmount % 10000) / 1000);
-
-  console.log('🔍 formatTransactionAmount - 단위 계산:', {
-    numAmount,
-    억,
-    천만,
-  });
 
   let result = '';
 
@@ -104,8 +85,22 @@ export const formatTransactionAmount = (amount: string): string => {
   }
 
   const finalResult = result || '0';
-  console.log('🔍 formatTransactionAmount - 최종 결과:', finalResult);
   return finalResult;
+};
+
+/**
+ * 숫자 가격을 억/천만원/만원 단위로 포맷팅
+ * @param price 가격 (억원 단위의 숫자)
+ * @returns 포맷팅된 가격 문자열
+ */
+export const formatPrice = (price: number): string => {
+  if (price >= 1) {
+    return `${price.toFixed(2)}억`;
+  } else if (price >= 0.1) {
+    return `${(price * 10).toFixed(1)}천만원`;
+  } else {
+    return `${(price * 10000).toFixed(0)}만원`;
+  }
 };
 
 /**

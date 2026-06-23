@@ -113,6 +113,7 @@ export function ConfirmModal({
     <div
       className={styles.overlay}
       onClick={isLoading ? undefined : handleCancel}
+      style={{ pointerEvents: 'auto' }}
     >
       <div
         className={styles.modalContainer}
@@ -143,7 +144,8 @@ export function ConfirmModal({
 
         {/* 버튼 */}
         <div className={styles.buttonContainer}>
-          {cancelText && (
+          {/* warning 모달일 때만 취소 버튼 표시 */}
+          {icon === 'warning' && cancelText && (
             <Button
               variant='secondary'
               onClick={handleCancel}

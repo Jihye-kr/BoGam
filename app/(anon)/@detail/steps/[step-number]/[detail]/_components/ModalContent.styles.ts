@@ -4,7 +4,7 @@ export const styles = {
 
   // 스크롤바 커스텀 스타일
   scrollableContent:
-    'max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar',
+    'h-[calc(100vh-5rem)] overflow-y-auto custom-scrollbar relative',
 
   // 스텝 번호 헤더
   stepHeader: 'text-center p-4',
@@ -12,15 +12,4 @@ export const styles = {
 
   // Swiper 컨테이너
   swiperContainer: 'h-[calc(100%-12rem)] overflow-y-auto custom-scrollbar',
-
-  // 페이지 인디케이터
-  pageIndicator: 'flex justify-center items-center mt-4',
-  pageDot: 'w-2 h-2 mx-1 rounded-full transition-all duration-200',
-  pageDotActive: 'bg-brand-blue',
-  pageDotInactive: 'bg-brand-light-gray',
-
-  // 섹션 헤더 (CombinedContent용)
-  sectionHeader: 'mb-6',
-  sectionTitle: 'text-lg font-bold mb-2 text-brand-black',
-  sectionSubtitle: 'text-base font-medium mb-2 text-brand-dark-gray',
 } as const;

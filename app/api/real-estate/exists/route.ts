@@ -3,25 +3,25 @@ import { CheckRealEstateCopyExistsUsecase } from '@be/applications/realEstateCop
 import { RealEstateCopyRepositoryImpl } from '@be/infrastructure/repository/RealEstateCopyRepositoryImpl';
 import { getUserAddressId } from '@utils/userAddress';
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { nickname } = body;
+    const { searchParams } = new URL(request.url);
+    const userAddressNickname = searchParams.get('userAddressNickname');
 
-    if (!nickname) {
+    if (!userAddressNickname) {
       return NextResponse.json(
-        { success: false, error: 'nickname이 필요합니다.' },
+        { success: false, error: 'userAddressNickname이 필요합니다.' },
         { status: 400 }
       );
     }
 
-    // 닉네임을 userAddressId로 변환
-    const userAddressId = await getUserAddressId(nickname);
+    // userAddressNickname을 userAddressId로 변환 (서버에서 처리)
+    const userAddressId = await getUserAddressId(userAddressNickname);
 
     if (!userAddressId) {
       return NextResponse.json(
         { success: false, error: '해당 닉네임의 주소를 찾을 수 없습니다.' },
-        { status: 404 }
+        { status: 400 }
       );
     }
 

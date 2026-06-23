@@ -1,15 +1,36 @@
-const styles = {
-  container: 'w-full bg-brand-white rounded-lg shadow-sm',
-  title: 'text-lg font-bold text-brand-black mb-4 px-4 pt-4',
+export const styles = {
+  container: 'w-full max-w-6xl mx-auto p-4',
+  title: 'text-2xl font-bold text-brand-black mb-6 text-center',
+  dateSelector: 'mb-6 flex items-center gap-3',
+  dateLabel: 'text-sm font-medium text-brand-dark-gray',
+  dateSelect:
+    'text-sm px-3 py-2 border border-brand-light-gray rounded-md focus:outline-none focus:ring-2 focus:ring-brand shadow-sm',
+  selectedDate: 'mb-4 text-center',
+  dateText: 'text-lg font-semibold text-brand',
+  tableContainer:
+    'overflow-x-auto shadow-sm rounded-lg border border-brand-light-gray',
   table: 'w-full border-collapse',
-  tableRow: 'border-b border-brand-light-gray',
-  tableCell: 'px-4 py-3 text-sm text-brand-black',
-  tableCellLeft: 'w-1/3 bg-brand-light-gray bg-opacity-30 font-medium',
-  tableCellRight: 'w-2/3',
-  emptyRow: 'border-b border-brand-light-gray',
-  emptyCell: 'px-4 py-3 text-sm text-brand-black',
-  emptyCellLeft: 'w-1/3',
-  emptyCellRight: 'w-2/3',
+  tableHeader: 'bg-brand-light-gray bg-opacity-30',
+  tableHeaderCell:
+    'border-b border-brand-light-gray px-6 py-4 text-left font-semibold text-brand-black text-base',
+  tableRow:
+    'hover:bg-brand-light-blue hover:bg-opacity-20 transition-colors duration-150',
+  tableCell: 'border-b border-brand-light-gray px-6 py-4',
+  tableCellLeft: 'text-left font-medium text-brand-black',
+  tableCellCenter: 'text-center',
+  tableCellRight: 'text-left text-sm text-brand-dark-gray leading-relaxed',
+  dateHeaderRow: 'bg-brand-light-blue bg-opacity-50',
+  dateHeaderCell:
+    'border-b border-brand-light-gray px-6 py-3 text-center font-semibold text-brand-dark-blue text-sm',
+  emptyRow: 'h-16',
+  emptyCell: 'border-b border-brand-light-gray px-6 py-4',
+  emptyCellLeft: 'text-left',
+  emptyCellRight: 'text-right',
+  note: 'my-6 p-4 bg-brand-white border border-brand shadow-sm rounded-lg',
+  noteText: 'text-sm text-brand-dark-gray mb-2 last:mb-0',
+  loadingContainer: 'relative min-h-80 md:min-h-96',
+  errorContainer: 'text-center text-brand-dark-gray py-8',
+  stepDataSection: 'mt-8 flex justify-end',
+  badgeContainer: 'flex items-center',
+  stepDataTitle: 'text-sm text-brand-dark-gray ml-2',
 };
-
-export default styles;

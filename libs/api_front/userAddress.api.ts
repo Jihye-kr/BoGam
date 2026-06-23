@@ -29,6 +29,7 @@ export interface UserAddressWithAddressInfo {
   nickname: string;
   createdAt: Date;
   isPrimary: boolean;
+  isSelected: boolean;
   address: AddressInfo;
 }
 
@@ -103,12 +104,15 @@ class UserAddressApi {
       x?: number;
       y?: number;
       isPrimary?: boolean;
+      dong?: string;
+      ho?: string;
+      completeAddress?: string;
     }
   ): Promise<UserAddress> {
     const axiosInstance = frontendAxiosInstance.getAxiosInstance();
 
     const response = await axiosInstance.put<UserAddress>(
-      `/api/user-address/${id}`,
+      `/api/user-address?userAddressId=${id}`,
       addressData
     );
 
@@ -121,7 +125,7 @@ class UserAddressApi {
   public async deleteAddress(id: number): Promise<void> {
     const axiosInstance = frontendAxiosInstance.getAxiosInstance();
 
-    await axiosInstance.delete(`/api/user-address/${id}`);
+    await axiosInstance.delete(`/api/user-address?userAddressId=${id}`);
   }
 
   /**

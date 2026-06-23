@@ -1,6 +1,4 @@
-import { useState } from 'react';
 import { useAddressManagement } from './useAddressManagement';
-import { useTransactionManagement } from './useTransactionManagement';
 import { useMapManagement } from './useMapManagement';
 import { useTabManagement } from './useTabManagement';
 import { useMainPageState } from './useMainPageState';
@@ -9,17 +7,12 @@ import { useDaumPostcode } from './useDaumPostcode';
 import { useUserAddresses } from '../useUserAddresses';
 import { placesApi } from '@libs/api_front/places.api';
 import { useUserAddressStore } from '@libs/stores/userAddresses/userAddressStore';
-import { useTransactionDataStore } from '@libs/stores/transactionData/transactionDataStore';
 import { DaumPostcodeData } from '@/(anon)/main/_components/types/mainPage.types';
+import { useToastStore } from '@libs/stores/toastStore';
 
 export const useMainPageModule = () => {
-  // 실거래가 조회 모달 상태
-  const [showTransactionSearchModal, setShowTransactionSearchModal] =
-    useState(false);
-
   // 분리된 hooks 사용
   const addressManagement = useAddressManagement();
-  const transactionManagement = useTransactionManagement();
   const mapManagement = useMapManagement();
   const tabManagement = useTabManagement();
   const mainPageState = useMainPageState();
@@ -27,100 +20,132 @@ export const useMainPageModule = () => {
   const { isLoading: userAddressesLoading, isAuthenticated } =
     useUserAddresses();
 
+  // 모달 스토어
+  const { showError, showWarning } = useToastStore();
+
   // Store에서 데이터 가져오기
   const {
     userAddresses: storeUserAddresses,
-    selectAddress,
     addVolatileAddress,
     deleteVolatileAddress,
   } = useUserAddressStore();
 
-  // 실거래가 데이터 Store
-  const { clearTransactionData, isLoading } = useTransactionDataStore();
+  // 실거래가 데이터는 transactionManagement에서 관리
 
   // Daum Postcode 콜백 함수
   const handleDaumPostcodeComplete = async (data: DaumPostcodeData) => {
-    // 새로운 주소 검색 시 실거래가 데이터 초기화
-    if (!isLoading) {
-      clearTransactionData();
-    }
-
+    console.log('DaumPostcodeData data', data);
     try {
       // 키워드 검색으로 좌표 가져오기
       const searchData = await placesApi.searchByKeyword(data.address);
+      console.log('searchData', searchData);
+
+      let location = {
+        lat: 0,
+        lng: 0,
+      };
+
+      // searchData가 있으면 해당 좌표 사용
       if (searchData && searchData.length > 0) {
-        const location = {
+        location = {
           lat: parseFloat(searchData[0].latitude),
           lng: parseFloat(searchData[0].longitude),
         };
-
-        // 새 주소를 즉시 store에 저장 (휘발성) - 호는 빈 값으로 설정
-        const newAddressData = {
-          nickname: `${data.address}`,
-          x: location.lng,
-          y: location.lat,
-          isPrimary: false,
-          isVolatile: true, // 휘발성 플래그
-          legalDistrictCode: data.bcode.substring(0, 5) || '',
-          lotAddress: data.jibunAddress || '',
-          roadAddress: data.roadAddress || '',
-          completeAddress: data.address,
-          dong: '', // 동은 사용자가 입력
-          ho: '', // 호는 저장 시에만 사용
-        };
-
-        // 기존 휘발성 주소가 있으면 삭제 (최신 주소만 유지)
-        const existingVolatileAddress = storeUserAddresses.find(
-          (addr) => addr.isVolatile
-        );
-        if (existingVolatileAddress) {
-          deleteVolatileAddress(existingVolatileAddress.id);
-        }
-
-        // 새 주소를 store에만 저장 (DB 저장 없음)
-        const tempId = Date.now();
-        const newAddressWithId = {
-          ...newAddressData,
-          id: tempId,
-        };
-        addVolatileAddress(newAddressWithId);
-
-        // 새로 저장된 주소를 자동으로 선택
-        selectAddress(newAddressWithId);
-
-        // 메인 상태 업데이트 (호는 초기화하지 않음)
-        mainPageState.setRoadAddress(data.roadAddress || '');
-        mainPageState.setSearchQuery(data.address || '');
-        mainPageState.setSavedLawdCode(data.bcode.substring(0, 5) || '');
-        mainPageState.setShowPostcode(false);
       } else {
-        alert('주소를 찾을 수 없습니다.');
+        // searchData가 비어있으면 GPS 좌표 사용
+        if (locationManager.gpsLocation) {
+          location = {
+            lat: locationManager.gpsLocation.lat,
+            lng: locationManager.gpsLocation.lng,
+          };
+          showWarning('주소에 대한 좌표가 없습니다');
+        } else {
+          // GPS 좌표도 없으면 에러 처리하고 모달 닫기
+          showError('주소를 찾을 수 없습니다.');
+          mainPageState.setShowPostcode(false);
+          return;
+        }
       }
+
+      // 새 주소를 즉시 store에 저장 (휘발성) - 호는 빈 값으로 설정
+      const newAddressData = {
+        nickname: `${data.address}`,
+        x: location.lng,
+        y: location.lat,
+        isPrimary: false,
+        isVolatile: true, // 휘발성 플래그
+        legalDistrictCode: data.bcode.substring(0, 5) || '',
+        lotAddress: data.jibunAddress || '',
+        roadAddress: data.roadAddress || '',
+        completeAddress: data.address,
+        dong: '', // 동은 사용자가 입력
+        ho: '', // 호는 저장 시에만 사용
+      };
+
+      // 기존 휘발성 주소가 있으면 삭제 (최신 주소만 유지)
+      const existingVolatileAddress = storeUserAddresses.find(
+        (addr) => addr.isVolatile
+      );
+      if (existingVolatileAddress) {
+        deleteVolatileAddress(existingVolatileAddress.id);
+      }
+
+      // 새 주소를 store에만 저장 (DB 저장 없음)
+      const tempId = Date.now();
+      const newAddressWithId = {
+        ...newAddressData,
+        id: tempId,
+        isSelected: true, // 새로 추가된 주소를 선택된 주소로 설정
+      };
+
+      // 리팩토링된 addVolatileAddress 호출 (자동으로 isNewAddressSearch 설정됨)
+      await addVolatileAddress(newAddressWithId);
+
+      // 새로운 주소 추가 시 페이지 이동 방지
+      sessionStorage.setItem('allow-navigation', 'false');
+
+      // 메인 상태 업데이트 (호는 초기화)
+      mainPageState.setRoadAddress(data.roadAddress || '');
+      mainPageState.setSearchQuery(data.address || '');
+      mainPageState.setSavedLawdCode(data.bcode.substring(0, 5) || '');
+      mainPageState.setShowPostcode(false);
+
+      // 새 주소 추가 시 호 초기화
+      const { setHo, setDong } = useUserAddressStore.getState();
+      setHo('');
+      setDong('');
     } catch (error) {
       console.error('주소 검색 실패:', error);
-      alert('주소 검색 중 오류가 발생했습니다.');
+      showError('주소 검색 중 오류가 발생했습니다.');
+      // 에러 발생 시에도 모달 닫기
+      mainPageState.setShowPostcode(false);
     }
   };
 
-  const { execDaumPostcode, postcodeRef } = useDaumPostcode(
+  const { execDaumPostcode, executePostcode, postcodeRef } = useDaumPostcode(
     handleDaumPostcodeComplete,
-    mainPageState.setShowPostcode
+    mainPageState.setShowPostcode,
+    () => {
+      showError('주소 검색 중 오류가 발생했습니다.');
+    }
   );
 
   return {
     // 상태
     userAddresses: addressManagement.userAddresses,
     selectedAddress: addressManagement.selectedAddress,
-    searchQuery: addressManagement.searchQuery,
-    roadAddress: addressManagement.roadAddress,
-    dong: addressManagement.dong,
-    ho: addressManagement.ho,
-    savedLawdCode: addressManagement.savedLawdCode,
+    searchQuery: mainPageState.searchQuery,
+    roadAddress: mainPageState.roadAddress,
+    savedLawdCode: mainPageState.savedLawdCode,
     buildingType: mainPageState.buildingType,
     selectedYear: mainPageState.selectedYear,
     selectedMonth: mainPageState.selectedMonth,
     showPostcode: mainPageState.showPostcode,
     isNewAddressSearch: addressManagement.isNewAddressSearch,
+
+    // 새로운 주소 검색 시 사용할 dong, ho 상태
+    dong: mainPageState.dong,
+    ho: mainPageState.ho,
 
     // 위치 관리 상태
     gpsLocation: locationManager.gpsLocation,
@@ -130,19 +155,18 @@ export const useMainPageModule = () => {
 
     // 상태 설정 함수
     setSearchQuery: mainPageState.setSearchQuery,
-    setDong: mainPageState.setDong,
-    setHo: mainPageState.setHo,
     setBuildingType: mainPageState.setBuildingType,
-    setSelectedYear: mainPageState.setSelectedYear,
-    setSelectedMonth: mainPageState.setSelectedMonth,
+    setSelectedYear: mainPageState.selectedYear,
+    setSelectedMonth: mainPageState.selectedMonth,
     setShowPostcode: mainPageState.setShowPostcode,
 
-    // 액션 함수
-    handleAddressChangeWithTransaction:
-      addressManagement.handleAddressChangeWithTransaction,
-    handleMoveToAddress: transactionManagement.handleMoveToAddress,
+    // 새로운 주소 검색 시 사용할 dong, ho 설정 함수
+    setDong: mainPageState.setDong,
+    setHo: mainPageState.setHo,
+
     handleMoveToAddressOnly: addressManagement.handleMoveToAddressOnly,
     onSearch: execDaumPostcode,
+    executePostcode,
     postcodeRef,
 
     // 위치 관리 액션 함수
@@ -150,11 +174,6 @@ export const useMainPageModule = () => {
 
     // 주소 저장 함수
     saveAddressToUser: addressManagement.saveAddressToUser,
-
-    // 실거래가 조회 모달 관련
-    showTransactionSearchModal,
-    setShowTransactionSearchModal,
-    handleBuildingSelect: transactionManagement.handleBuildingSelect,
 
     // 탭 관리
     activeTab: tabManagement.activeTab,
@@ -174,12 +193,6 @@ export const useMainPageModule = () => {
     handleAdjustBounds: mapManagement.handleAdjustBounds,
     handleMoveToGPSLocation: mapManagement.handleMoveToGPSLocation,
     handleMoveToAddressFromMap: mapManagement.handleMoveToAddress,
-
-    // 실거래가 관리
-    transactionData: transactionManagement.transactionData,
-    handleTransactionSearch: transactionManagement.handleTransactionSearch,
-    handleClearTransactionData:
-      transactionManagement.handleClearTransactionData,
 
     // 기타
     userAddressesLoading,

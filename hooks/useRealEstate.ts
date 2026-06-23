@@ -1,70 +1,72 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { frontendAxiosInstance } from '@libs/api_front/axiosInstance';
 import {
   RealEstateFormData,
-  ApiResponse,
-} from '@/(anon)/_components/common/realEstate/types';
+} from '@/(anon)/@detail/steps/[step-number]/[detail]/_components/contents/realEstate/types';
+import { 
+  realEstateApi,
+  RealEstateSearchResponse,
+  RealEstateCopyApiResponse,
+  RealEstateExistsResponse
+} from '@libs/api_front/realEstate.api';
 
 // 데이터 존재 여부 확인
 export const useCheckRealEstateExists = (nickname?: string) => {
-  return useQuery<{ success: boolean; exists: boolean } | null>({
+  return useQuery<RealEstateExistsResponse | null>({
     queryKey: ['realEstate', 'exists', nickname],
-    queryFn: async (): Promise<{
-      success: boolean;
-      exists: boolean;
-    } | null> => {
+    queryFn: async (): Promise<RealEstateExistsResponse | null> => {
       if (!nickname) return null;
 
-      const response = await frontendAxiosInstance
-        .getAxiosInstance()
-        .post(`/api/real-estate/exists`, {
-          nickname,
-        });
-
-      return response.data as { success: boolean; exists: boolean };
+      try {
+        return realEstateApi.checkRealEstateCopyExists(nickname);
+      } catch (error) {
+        console.error('등기부등본 존재 여부 확인 실패:', error);
+        throw error;
+      }
     },
     enabled: !!nickname,
+    retry: 2, // 실패 시 2번 재시도
+    retryDelay: 1000, // 1초 후 재시도
+    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
   });
 };
 
 // DB에서 등기부등본 데이터 조회
 export const useGetRealEstateFromDB = (userAddressNickname?: string) => {
-  return useQuery<ApiResponse | null>({
+  return useQuery<RealEstateCopyApiResponse | null>({
     queryKey: ['realEstate', 'db', userAddressNickname],
-    queryFn: async (): Promise<ApiResponse | null> => {
+    queryFn: async (): Promise<RealEstateCopyApiResponse | null> => {
       if (!userAddressNickname) return null;
 
-      const response = await frontendAxiosInstance
-        .getAxiosInstance()
-        .post(`/api/copies/real-estate`, {
-          userAddressNickname,
-        });
-
-      return response.data as ApiResponse;
+      try {
+        return realEstateApi.getRealEstateCopy(userAddressNickname);
+      } catch (error) {
+        console.error('등기부등본 DB 조회 실패:', error);
+        throw error;
+      }
     },
     enabled: !!userAddressNickname,
+    retry: 2, // 실패 시 2번 재시도
+    retryDelay: 1000, // 1초 후 재시도
+    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
   });
 };
 
 // 외부 API에서 등기부등본 조회 및 DB 저장
 export const useCreateRealEstate = (
-  onSuccess?: (data: ApiResponse) => void
+  onSuccess?: (data: RealEstateSearchResponse) => void
 ) => {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    ApiResponse,
-    Error,
-    RealEstateFormData & { userAddressNickname: string }
-  >({
+  return useMutation<RealEstateSearchResponse, Error, RealEstateFormData & { userAddressNickname: string }>({
     mutationFn: async (
       data: RealEstateFormData & { userAddressNickname: string }
-    ): Promise<ApiResponse> => {
-      const response = await frontendAxiosInstance
-        .getAxiosInstance()
-        .post('/api/real-estate/search/address', data);
-
-      return response.data as ApiResponse;
+    ): Promise<RealEstateSearchResponse> => {
+      try {
+        return realEstateApi.searchByAddress(data);
+      } catch (error) {
+        console.error('등기부등본 생성 실패:', error);
+        throw error;
+      }
     },
     onSuccess: (data, variables) => {
       // 성공 시 관련 쿼리 무효화
@@ -84,16 +86,20 @@ export const useCreateRealEstate = (
 };
 
 // 2-way 인증 요청
-export const useTwoWayAuth = (onSuccess?: (data: ApiResponse) => void) => {
+export const useTwoWayAuth = (
+  onSuccess?: (data: RealEstateSearchResponse) => void,
+  onError?: (error: Error) => void
+) => {
   const queryClient = useQueryClient();
 
-  return useMutation<ApiResponse, Error, Record<string, unknown>>({
-    mutationFn: async (data: Record<string, unknown>): Promise<ApiResponse> => {
-      const response = await frontendAxiosInstance
-        .getAxiosInstance()
-        .post('/api/real-estate/search/address', data);
-
-      return response.data as ApiResponse;
+  return useMutation<RealEstateSearchResponse, Error, Record<string, unknown>>({
+    mutationFn: async (data: Record<string, unknown>): Promise<RealEstateSearchResponse> => {
+      try {
+        return realEstateApi.searchByAddress(data as unknown as RealEstateFormData & { userAddressNickname: string });
+      } catch (error) {
+        console.error('2-way 인증 실패:', error);
+        throw error;
+      }
     },
     onSuccess: (data, variables) => {
       // 성공 시 관련 쿼리 무효화
@@ -109,6 +115,12 @@ export const useTwoWayAuth = (onSuccess?: (data: ApiResponse) => void) => {
       // 콜백 실행
       if (onSuccess) {
         onSuccess(data);
+      }
+    },
+    onError: (error) => {
+      // 에러 콜백 실행
+      if (onError) {
+        onError(error);
       }
     },
   });

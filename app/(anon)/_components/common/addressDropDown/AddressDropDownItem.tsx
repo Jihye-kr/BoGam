@@ -18,6 +18,7 @@ interface AddressDropDownItemProps {
   showFavoriteToggle?: boolean;
   showDeleteButton?: boolean;
   animationDelay?: number;
+  isUpdating?: boolean;
 }
 
 export function AddressDropDownItem({
@@ -28,7 +29,7 @@ export function AddressDropDownItem({
   onSelect,
   showFavoriteToggle = true,
   showDeleteButton = true,
-  animationDelay = 0,
+  animationDelay = 0
 }: AddressDropDownItemProps) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -79,6 +80,7 @@ export function AddressDropDownItem({
       >
         {showFavoriteToggle && (
           <button
+            type='button'
             onClick={(e) => {
               e.stopPropagation();
               handleToggleFavorite();
@@ -115,6 +117,7 @@ export function AddressDropDownItem({
       </div>
       {showDeleteButton && (
         <button
+          type='button'
           onClick={(e) => {
             e.stopPropagation();
             handleDelete();

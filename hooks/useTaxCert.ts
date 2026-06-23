@@ -1,91 +1,80 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { frontendAxiosInstance } from '@libs/api_front/axiosInstance';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { GetTaxCertResponseDto } from '@be/applications/taxCert/dtos/GetTaxCertResponseDto';
+import { 
+  taxCertApi,
+  TaxCertApiResponse,
+  TaxCertCopyApiResponse,
+  TaxCertExistsResponse,
+  TaxCertIssueRequest
+} from '@libs/api_front/taxCert.api';
 
-// 납세증명서 복사본 존재 여부 확인
-export const useCheckTaxCertCopyExists = (nickname: string | null) => {
-  return useQuery({
-    queryKey: ['taxCertCopyExists', nickname],
-    queryFn: async () => {
-      if (!nickname) {
-        return { success: false, exists: false };
-      }
-      const response = await frontendAxiosInstance
-        .getAxiosInstance()
-        .get(`/api/tax-cert/exists?nickname=${encodeURIComponent(nickname)}`);
-      return response.data;
-    },
-    enabled: !!nickname,
+// 납세증명서 존재 여부 확인
+export const useCheckTaxCertExists = (userAddressNickname: string) => {
+  return useQuery<TaxCertExistsResponse>({
+    queryKey: ['taxCert', 'exists', userAddressNickname],
+    queryFn: () => taxCertApi.checkTaxCertExists(userAddressNickname),
+    enabled: !!userAddressNickname,
   });
 };
 
 // 납세증명서 복사본 조회
-export const useGetTaxCertCopy = (nickname: string | null) => {
-  return useQuery({
-    queryKey: ['taxCertCopy', nickname],
-    queryFn: async () => {
-      if (!nickname) {
+export const useGetTaxCertCopy = (userAddressNickname: string | null) => {
+  return useQuery<TaxCertCopyApiResponse | null>({
+    queryKey: ['taxCertCopy', userAddressNickname],
+    queryFn: async (): Promise<TaxCertCopyApiResponse | null> => {
+      if (!userAddressNickname) {
         return null;
       }
-      const response = await frontendAxiosInstance
-        .getAxiosInstance()
-        .get(
-          `/api/copies/tax-cert?userAddressNickname=${encodeURIComponent(
-            nickname
-          )}`
-        );
-      return response.data;
+      return taxCertApi.getTaxCertCopy({ userAddressNickname: userAddressNickname });
     },
-    enabled: !!nickname,
+    enabled: !!userAddressNickname,
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000,
   });
 };
 
-// 납세증명서 발급
-export const useIssueTaxCert = () => {
-  return useMutation({
-    mutationFn: async (data: {
-      organization: string;
-      loginType: string;
-      isIdentityViewYN: string;
-      proofType: string;
-      submitTargets: string;
-      userAddressNickname: string;
-      is2Way?: boolean;
-      certType?: string;
-      certFile?: string;
-      keyFile?: string;
-      certPassword?: string;
-      userId?: string;
-      userPassword?: string;
-      userName?: string;
-      loginIdentity?: string;
-      loginTypeLevel?: string;
-      phoneNo?: string;
-      telecom?: string;
-      identityEncYn?: string;
-      loginBirthDate?: string;
-      // CommonFields에서 추가된 필드들
-      applicationType?: string;
-      clientTypeLevel?: string;
-      identity?: string;
-      birthDate?: string;
-      // API 공식문서 필수 필드들
-      isAddrViewYn?: string;
-      originDataYN?: string;
-      originDataYN1?: string;
-      id?: string;
-      // 2-way 인증 관련 필드
-      twoWayInfo?: {
-        jobIndex?: number;
-        threadIndex?: number;
-        jti?: string;
-        twoWayTimestamp?: number;
-      };
-      simpleAuth?: string;
-    }) => {
-      const response = await frontendAxiosInstance
-        .getAxiosInstance()
-        .post('/api/tax-cert', data);
-      return response.data;
+// 납세증명서 제출
+export const useSubmitTaxCert = (
+  onSuccess?: (data: TaxCertApiResponse) => void,
+  onError?: (error: unknown) => void
+) => {
+  return useMutation<TaxCertApiResponse, Error, TaxCertIssueRequest>({
+    mutationFn: async (data: TaxCertIssueRequest): Promise<TaxCertApiResponse> => {
+      return taxCertApi.issueTaxCert(data);
     },
+    onSuccess,
+    onError,
+  });
+};
+
+// 간편인증 2-way 인증
+export const useSubmitTwoWayAuth = (
+  onSuccess?: (data: GetTaxCertResponseDto) => void,
+  onError?: (error: unknown) => void
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<GetTaxCertResponseDto, Error, TaxCertIssueRequest>({
+    mutationFn: async (data: TaxCertIssueRequest): Promise<GetTaxCertResponseDto> => {
+      return taxCertApi.issueTaxCert(data) as Promise<GetTaxCertResponseDto>;
+    },
+    onSuccess: (data: GetTaxCertResponseDto, variables) => {
+      if (data.success === true && variables.userAddressNickname) {
+        const formattedAddress = variables.userAddressNickname
+          .split('+')
+          .join(' ');
+        queryClient.invalidateQueries({
+          queryKey: ['taxCert', 'exists', formattedAddress],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['taxCertCopy', formattedAddress],
+        });
+      }
+      // onSuccess 콜백 호출 추가
+      if (onSuccess) {
+        onSuccess(data);
+      }
+    },
+    onError,
   });
 };

@@ -1,6 +1,9 @@
 const styles = {
   // JSON 데이터 표시를 위한 스타일
   container: 'p-5 max-w-4xl mx-auto',
+  header: 'mb-6',
+  title: 'text-xl font-bold mb-2 text-brand-black',
+  subtitle: 'text-base text-brand-dark-gray mb-4',
   section: 'mb-6',
   sectionTitle: 'text-lg font-medium mb-2 text-black',
   sectionSubtitle: 'text-base font-medium mb-2 text-black',
@@ -16,7 +19,7 @@ const styles = {
   summary: 'mt-3 text-base text-black',
   
   // 로딩 및 에러 상태 스타일
-  loadingContainer: 'text-center py-10 text-black',
+  loadingContainer: 'relative min-h-80 md:min-h-96',
   errorContainer: 'text-center py-10 text-brand-error',
   noDataContainer: 'text-center py-10 text-black',
 
@@ -26,7 +29,7 @@ const styles = {
   badgeContainer: 'flex flex-wrap gap-2',
   
   // 메시지 표시 스타일
-  messagesContainer: 'mt-4 p-4 border border-brand-error rounded-lg bg-brand-error/10',
+  messagesContainer: 'mt-4 p-4 border border-brand-gold rounded-lg bg-brand-gold/10',
   messageItem: 'text-sm text-black mb-2 last:mb-0',
   linkContainer: 'mt-3 pt-3 border-t border-brand-error',
   link: 'text-sm text-brand-error hover:text-brand-dark-gray underline',

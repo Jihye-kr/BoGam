@@ -1,5 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import stepResultQueryApi, { StepResultData } from '@libs/api_front/stepResultQueries.api';
+import stepResultQueryApi, {
+  StepResultData,
+} from '@libs/api_front/stepResultQueries.api';
+
+// API 응답 데이터 타입 정의
+interface StepResultResponseData {
+  results: StepResultData[];
+  summary: {
+    totalMismatch: number;
+    totalMatch: number;
+    totalUnchecked: number;
+    stepCount: number;
+    stepNumber: number;
+  };
+}
 
 interface GetStepResultParams {
   userAddressNickname: string;
@@ -7,8 +21,17 @@ interface GetStepResultParams {
   detail: string;
 }
 
-export const useGetStepResult = (params: GetStepResultParams) => {
-  const { data, isLoading, isError } = useQuery<StepResultData>({
+interface GetStepResultOptions {
+  enabled?: boolean;
+}
+
+export const useGetStepResult = (
+  params: GetStepResultParams,
+  options?: GetStepResultOptions
+) => {
+  const { data, isLoading, isError, refetch } = useQuery<
+    StepResultData | StepResultData[] | StepResultResponseData
+  >({
     queryKey: [
       'stepResults',
       params.userAddressNickname,
@@ -16,14 +39,10 @@ export const useGetStepResult = (params: GetStepResultParams) => {
       params.detail,
     ],
     queryFn: () => stepResultQueryApi.getStepResult(params),
-    enabled: !!(
-      params.userAddressNickname &&
-      params.stepNumber &&
-      params.detail
-    ),
-    staleTime: 5 * 60 * 1000, // 5분
+    enabled: !!params.userAddressNickname,
+    staleTime: 0, // 캐시 즉시 무효화
     gcTime: 10 * 60 * 1000, // 10분
   });
-  
-  return { data, isLoading, isError };
+
+  return { data, isLoading, isError, refetch };
 };

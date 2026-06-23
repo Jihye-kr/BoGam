@@ -1,123 +1,239 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useMainPageModule } from '@/hooks/main/useMainPageModule';
-import { useMainPageState } from '@/hooks/main/useMainPageState';
 import { useUserAddressStore } from '@libs/stores/userAddresses/userAddressStore';
-import { DaumPostcodeModal } from '@/(anon)/main/_components/daumPostcodeModal/DaumPostcodeModal';
+import { useUserAddresses } from '@/hooks/useUserAddresses';
 import Button from '@/(anon)/_components/common/button/Button';
-import TextInput from '@/(anon)/_components/common/forms/TextInput';
 import { styles } from '@/(anon)/main/_components/tabContainer/AddressConfirmationTab.styles';
 import KakaoMapModule from '@/(anon)/main/_components/kakaoMapModule/KakaoMapModule';
+import LoadingOverlay from '@/(anon)/_components/common/loading/LoadingOverlay';
+import {
+  parseDongHoInputOnly,
+  formatDongHoDisplay,
+} from '@utils/addressInputUtils';
 
 export const AddressConfirmationTab: React.FC = () => {
   // Zustand store에서 직접 가져오기
-  const { selectedAddress } = useUserAddressStore();
+  const { selectedAddress, updateAddress } = useUserAddressStore();
+  
+  // 주소 데이터 로딩 상태
+  const { isLoading } = useUserAddresses();
 
   // useMainPageModule에서 필요한 함수들만 가져오기
   const {
-    onSearch,
-    postcodeRef,
     handleMoveToAddressOnly,
     saveAddressToUser,
-    showPostcode,
-    setShowPostcode,
+    isNewAddressSearch,
+    // 새로운 주소 검색 시에는 useMainPageState의 dong, ho 사용
+    dong: mainPageDong,
+    ho: mainPageHo,
+    setDong: setMainPageDong,
+    setHo: setMainPageHo,
   } = useMainPageModule();
 
-  // Daum Postcode 실행 함수
-  const handleAddressSearch = () => {
-    if (onSearch) {
-      onSearch();
-    }
-  };
+  // input ref를 사용하여 직접 제어
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
-  // useMainPageState에서 상태와 setter 함수들 가져오기
-  const { dong, ho, setDong, setHo } = useMainPageState();
+  // 새로운 주소 검색 시에는 mainPageState의 dong, ho 사용, 아니면 store의 dong, ho 사용
+  const {
+    dong: storeDong,
+    ho: storeHo,
+    setDong: setStoreDong,
+    setHo: setStoreHo,
+  } = useUserAddressStore();
 
-  // 선택된 주소가 변경될 때 동 데이터만 업데이트 (호는 저장 시에만 사용)
-  useEffect(() => {
-    if (selectedAddress) {
-      setDong(selectedAddress.dong || '');
-      setHo(selectedAddress.ho || '');
+  // 현재 사용할 dong, ho 결정
+  const currentDong = isNewAddressSearch ? mainPageDong : storeDong;
+  const currentHo = isNewAddressSearch ? mainPageHo : storeHo;
+  const setCurrentDong = isNewAddressSearch ? setMainPageDong : setStoreDong;
+  const setCurrentHo = isNewAddressSearch ? setMainPageHo : setStoreHo;
+
+  // 주소 수정 상태 감지
+  const isAddressModified = useMemo(() => {
+    // 새로운 주소 검색 상태가 아닌 경우 (즉, 기존 DB 주소가 선택된 상태)
+    if (isNewAddressSearch) {
+      return false;
     }
-  }, [selectedAddress, setDong, setHo]);
+
+    // 선택된 주소가 있고, 해당 주소가 휘발성이 아닌 경우
+    if (selectedAddress && !selectedAddress.isVolatile) {
+      const originalDong = selectedAddress.dong || '';
+      const originalHo = selectedAddress.ho || '';
+
+      // 현재 입력된 동-호 값과 원본 값이 다른 경우
+      return currentDong !== originalDong || currentHo !== originalHo;
+    }
+
+    return false;
+  }, [isNewAddressSearch, selectedAddress, currentDong, currentHo]);
 
   // 주소 표시 로직
   const displaySearchQuery = selectedAddress?.completeAddress || '';
 
+  // 주소에서 동/호 파싱하는 함수
+  const parseAddressForDongHo = (address: string) => {
+    if (!address) return { address: '', dong: '', ho: '' };
+
+    // 정규식으로 동/호 패턴 찾기
+    // 패턴: "xx동 xx호" 형태
+    const dongHoPattern = /(\d+)동\s*(\d+)호/;
+
+    let dong = '';
+    let ho = '';
+    let cleanAddress = address;
+
+    // 패턴 매칭 시도
+    const match = address.match(dongHoPattern);
+    if (match) {
+      dong = match[1]; // "동" 글자 제거하고 숫자만 추출
+      ho = match[2]; // "호" 글자 제거하고 숫자만 추출
+      cleanAddress = address.replace(dongHoPattern, '').trim();
+    }
+
+    // 쉼표나 괄호로 끝나는 경우 정리
+    cleanAddress = cleanAddress.replace(/[,\s]+$/, '').trim();
+
+    return {
+      address: cleanAddress,
+      dong: dong,
+      ho: ho,
+    };
+  };
+
+  // 주소 파싱 결과를 useMemo로 메모이제이션
+  const parsedAddress = useMemo(() => {
+    return parseAddressForDongHo(displaySearchQuery);
+  }, [displaySearchQuery]);
+
+  // 동/호가 파싱되면 자동으로 입력 필드에 설정
+  useEffect(() => {
+    if (parsedAddress.dong) {
+      setCurrentDong(parsedAddress.dong);
+    }
+    if (parsedAddress.ho) {
+      setCurrentHo(parsedAddress.ho);
+    }
+  }, [
+    displaySearchQuery,
+    parsedAddress.dong,
+    parsedAddress.ho,
+    setCurrentDong,
+    setCurrentHo,
+  ]);
+
+  // 새로 주소가 추가되었을 때 동/호 input 비우기
+  useEffect(() => {
+    if (isNewAddressSearch && inputRef.current) {
+      inputRef.current.value = '';
+    }
+  }, [isNewAddressSearch]);
+
+  // 주소 파싱 결과가 있을 때 input에 반영
+  useEffect(() => {
+    if (parsedAddress.dong || parsedAddress.ho) {
+      if (inputRef.current) {
+        inputRef.current.value = formatDongHoDisplay(
+          parsedAddress.dong,
+          parsedAddress.ho
+        );
+      }
+    }
+  }, [parsedAddress.dong, parsedAddress.ho]);
+
   return (
     <div className={styles.container}>
-      {/* 첫 번째 줄: 버튼들 */}
-      <div className={styles.buttonRow}>
-        <Button
-          onClick={() => handleMoveToAddressOnly(dong)}
-          disabled={!dong.trim()}
-          variant='primary'
-          className={styles.confirmButton}
-        >
-          지도에서 확인하기
-        </Button>
+      {/* 두 번째 줄: 주소 검색 결과 */}
+      <div className={styles.addressSearchRow}>
+        <div className={styles.addressContainer}>
+          <span
+            className={`${
+              parsedAddress.address || displaySearchQuery
+                ? styles.addressValue
+                : styles.addressPlaceholder
+            }`}
+          >
+            {parsedAddress.address ||
+              displaySearchQuery ||
+              '주소를 검색하여 추가해주세요'}
+          </span>
+          
+          {/* 로딩 오버레이 */}
+          {isLoading && (
+            <div className={styles.loadingOverlay}>
+              <LoadingOverlay
+                isVisible={true}
+                currentStep={1}
+                totalSteps={1}
+                variant='inline'
+                spinnerSize='small'
+              />
+            </div>
+          )}
+        </div>
         <Button
           onClick={() => {
-            saveAddressToUser(dong, ho);
+            if (isAddressModified) {
+              updateAddress(selectedAddress!.id, {
+                dong: currentDong,
+                ho: currentHo,
+                completeAddress: selectedAddress!.roadAddress
+                  ? `${
+                      selectedAddress!.roadAddress
+                    } ${currentDong}동${currentHo}호`
+                  : `${
+                      selectedAddress!.lotAddress
+                    } ${currentDong}동${currentHo}호`,
+              });
+            } else {
+              saveAddressToUser(currentDong, currentHo);
+            }
           }}
-          disabled={!dong.trim()}
-          variant='secondary'
-          className={styles.saveButton}
+          disabled={!currentDong.trim() || !currentHo.trim()}
+          variant='primary'
+          className={'!mt-0 !w-24 !h-8 !text-xs !px-0 !py-0'}
         >
-          저장하기
+          {isAddressModified ? '주소 수정' : '주소 저장'}
         </Button>
       </div>
 
-             {/* 두 번째 줄: 주소 검색 결과 */}
-       <div className={styles.addressSearchRow}>
-         <div className={styles.addressContainer}>
-           <span className={styles.addressValue}>
-             {displaySearchQuery || '주소 검색으로 주소를 검색 해주세요'}
-           </span>
-         </div>
-         <Button
-           onClick={handleAddressSearch}
-           variant='primary'
-           className={styles.searchButton}
-         >
-           주소 검색
-         </Button>
-       </div>
-
-      {/* 세 번째 줄: 동/호 입력 필드 */}
+      {/* 세 번째 줄: 동-호 입력 필드 */}
       <div className={styles.dongHoInputs}>
         <div className={styles.dongHoContainer}>
-          <TextInput
-            placeholder='동'
-            value={dong}
-            onChange={(e) => setDong(e.target.value)}
-            className={styles.dongField}
+          <input
+            ref={inputRef}
+            placeholder='101-1102, 동-호 형태로'
+            onChange={(e) => {
+              const newValue = e.target.value;
+              const result = parseDongHoInputOnly(newValue);
+              setCurrentDong(result.dong);
+              setCurrentHo(result.ho);
+            }}
+            inputMode='text'
+            type='text'
+            className={styles.combinedField}
           />
-          <span className={styles.dongHoLabel}>동</span>
-        </div>
-        <div className={styles.dongHoContainer}>
-          <TextInput
-            placeholder='호'
-            value={ho}
-            onChange={(e) => setHo(e.target.value)}
-            className={styles.hoField}
-          />
-          <span className={styles.dongHoLabel}>호</span>
         </div>
       </div>
 
       {/* 네 번째 줄: 카카오맵 */}
       <div className={styles.mapContainer}>
-        <KakaoMapModule showTransactionMarkers={true} />
+        <div className={styles.mapWrapper}>
+          <div className={styles.mapButtonContainer}>
+            <Button
+              onClick={() => {
+                handleMoveToAddressOnly(currentDong);
+              }}
+              disabled={!currentDong.trim()}
+              variant='primary'
+              className={styles.confirmButton}
+            >
+              지도 이동
+            </Button>
+          </div>
+          <KakaoMapModule showTransactionMarkers={true} />
+        </div>
       </div>
-      
-      {/* Daum 우편번호 검색 모달 */}
-      <DaumPostcodeModal
-        postcodeRef={postcodeRef}
-        showPostcode={showPostcode}
-        onClose={() => setShowPostcode(false)}
-      /> 
     </div>
   );
 };

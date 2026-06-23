@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ApiResponse } from '@/(anon)/_components/common/realEstate/types';
+import { ApiResponse } from '@/(anon)/@detail/steps/[step-number]/[detail]/_components/contents/realEstate/types';
 import { useUserAddressStore } from '@libs/stores/userAddresses/userAddressStore';
 import { useGetRealEstateFromDB } from '@/hooks/useRealEstate';
 import { useRiskAssessment } from '@/hooks/useRiskAssessment';
@@ -8,7 +8,7 @@ import { RealEstateEntity } from '@be/domain/entities/RealEstate';
 interface UseRealEstateOutputProps {
   response: ApiResponse | null;
   loading: boolean;
-  existsData: any;
+  existsData: { success: boolean; exists: boolean } | null | undefined;
 }
 
 export const useRealEstateOutput = ({
@@ -25,7 +25,7 @@ export const useRealEstateOutput = ({
   );
 
   // response prop이 있으면 그것을 사용, 없으면 dbResponse 사용
-  const displayResponse: ApiResponse | null = response || dbResponse || null;
+  const displayResponse: ApiResponse | null = response || (dbResponse as ApiResponse) || null;
 
   // 현재 라우팅에서 step number 추출
   useEffect(() => {
@@ -35,10 +35,12 @@ export const useRealEstateOutput = ({
     }
   }, []);
 
-  // 위험도 측정
+  // 위험도 측정 - 새로운 데이터 구조 우선 사용
+  const realEstateData =
+    displayResponse?.data?.data || displayResponse?.data?.realEstateJson?.data;
   const riskAssessment = useRiskAssessment(
     currentStep,
-    displayResponse?.data?.realEstateJson?.data as RealEstateEntity,
+    realEstateData as RealEstateEntity,
     null
   );
 

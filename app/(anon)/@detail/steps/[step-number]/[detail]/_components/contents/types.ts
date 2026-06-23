@@ -57,16 +57,19 @@ export interface RadioGroupSection extends BaseContentSection {
 // Table 전용 인터페이스
 export interface TableSection extends BaseContentSection {
   type: 'Table';
+  columnTitles: string[];
   data: Array<{
-    left: string;
-    right?: string;
+    region: string;
+    depositRange: string;
+    priorityAmount: string;
+    option: string;
   }>;
 }
 
 // List 전용 인터페이스
 export interface ListSection extends BaseContentSection {
   type: 'List';
-  data: Array<{ left: string; right?: string }>;
+  data: Array<{ title: string; content: string }>;
 }
 
 // DataGrid 전용 인터페이스
@@ -93,6 +96,48 @@ export interface CheckListGroupSection extends BaseContentSection {
   }>;
 }
 
+// TaxCertIntro 전용 인터페이스
+export interface TaxCertIntroSection extends BaseContentSection {
+  type: 'TaxCertIntro';
+  data: {
+    contentSections: Array<{
+      subtitle: string;
+      contents: string[];
+    }>;
+    image: {
+      src: string;
+      alt: string;
+      width: number;
+      height: number;
+    };
+    checklistItems: Array<{
+      id: string;
+      label: string;
+      defaultValue: 'match' | 'mismatch';
+    }>;
+  };
+}
+
+// TaxCertContainer 전용 인터페이스
+export interface TaxCertContainerSection extends BaseContentSection {
+  type: 'TaxCertContainer';
+}
+
+// RealEstateContainer 전용 인터페이스
+export interface RealEstateContainerSection extends BaseContentSection {
+  type: 'RealEstateContainer';
+}
+
+// GuaranteeLimit 전용 인터페이스
+export interface GuaranteeLimitSection extends BaseContentSection {
+  type: 'GuaranteeLimit';
+}
+
+// TransactionSearchContainer 전용 인터페이스
+export interface TransactionSearchContainerSection extends BaseContentSection {
+  type: 'TransactionSearchContainer';
+}
+
 // 모든 섹션 타입을 유니온으로 정의
 export type ContentSection =
   | TextOnlySection
@@ -100,7 +145,12 @@ export type ContentSection =
   | TableSection
   | ListSection
   | DataGridSection
-  | CheckListGroupSection;
+  | CheckListGroupSection
+  | TaxCertIntroSection
+  | TaxCertContainerSection
+  | RealEstateContainerSection
+  | GuaranteeLimitSection
+  | TransactionSearchContainerSection;
 
 // CombinedContent용 인터페이스
 export interface CombinedContentProps {
@@ -109,11 +159,24 @@ export interface CombinedContentProps {
   showDividers?: boolean;
 }
 
-// ModalContent용 인터페이스
+// StepContentData는 다양한 콘텐츠 타입을 지원
 export interface StepContentData {
-  dataType: string;
-  data: ContentSection[][];
-  sections?: ContentSection[]; // CombinedContent용
+  dataType:
+    | 'TextOnly'
+    | 'RadioGroup'
+    | 'Table'
+    | 'List'
+    | 'DataGrid'
+    | 'CheckListGroup'
+    | 'RealEstateContainer'
+    | 'BrokerContainer'
+    | 'TransactionSearchContainer'
+    | 'CombinedContent';
+  title?: string;
+  columnTitles?: string[];
+  description?: string[];
+  data?: ContentSection[][];
+  sections?: ContentSection[];
 }
 
 // 기존 ContentSection과의 호환성을 위한 타입
@@ -147,5 +210,7 @@ export interface LegacyContentSection {
     fullWidth?: boolean;
   }>;
   messages?: string[];
+  yesMessages?: string[];
+  noMessages?: string[];
   link?: string;
 }

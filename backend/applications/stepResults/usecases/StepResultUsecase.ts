@@ -16,13 +16,9 @@ export class StepResultUsecase {
     detail?: number
   ): Promise<StepResultResponseDto> {
     try {
-      console.log('🔍 getStepResults 호출:', { userAddressNickname, stepNumber, detail });
-      
       const userAddressId = await getUserAddressId(userAddressNickname);
-      console.log('🔍 userAddressId 조회 결과:', userAddressId);
       
       if (!userAddressId) {
-        console.log('❌ userAddressId를 찾을 수 없음');
         return {
           success: false,
           error: '해당 주소를 찾을 수 없습니다.',
@@ -31,21 +27,35 @@ export class StepResultUsecase {
 
       const params: Record<string, unknown> = { userAddressId };
 
-      if (stepNumber) {
-        params.stepNumber = stepNumber;
+      // stepNumber와 detail이 모두 있는 경우 stepId로 변환
+      if (stepNumber && detail) {
+        const stepId = await this.stepResultRepository.findStepIdByMainSub(
+          stepNumber,
+          detail
+        );
+        if (stepId) {
+          params.stepId = stepId;
+        } else {
+          return {
+            success: false,
+            error: '해당 stepNumber와 detail에 맞는 스탭을 찾을 수 없습니다.',
+          };
+        }
+      } else {
+        // stepNumber나 detail 중 하나만 있는 경우 기존 방식 사용
+        if (stepNumber) {
+          params.stepNumber = stepNumber;
+        }
+        if (detail) {
+          params.detail = detail;
+        }
       }
-
-      if (detail) {
-        params.detail = detail;
-      }
-
-      console.log('params', params);
 
       const stepResults = await this.stepResultRepository.findByParams(params);
 
-      // stepNumber만 있는 경우 요약 정보 계산
-      if (stepNumber && !detail) {
-        const summary = this.calculateSummary(stepResults, stepNumber);
+      // stepNumber만 있는 경우 또는 userAddressId만 있는 경우 요약 정보 계산
+      if ((stepNumber && !detail) || (!stepNumber && !detail)) {
+        const summary = this.calculateSummary(stepResults, stepNumber || 0);
         return {
           success: true,
           data: {
@@ -149,7 +159,7 @@ export class StepResultUsecase {
         undefined, // mismatch - DB 트리거가 계산
         undefined, // match - DB 트리거가 계산
         undefined, // unchecked - DB 트리거가 계산
-        dto.jsonDetails,
+        dto.jsonDetails, // jsonDetails를 details 컬럼에 저장
         new Date()
       );
 

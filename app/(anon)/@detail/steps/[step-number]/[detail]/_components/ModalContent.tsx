@@ -11,14 +11,32 @@ import CheckListGroup from './contents/CheckListGroup';
 import RadioGroup from './contents/RadioGroup';
 import { parseStepUrl } from '@utils/stepUrlParser';
 import { LegacyContentSection, StepContentData } from './contents/types';
-import TaxCertResultDisplay from '@/(anon)/_components/common/taxCert/TaxCertResultDisplay';
-import { RealEstateContainer } from '@/(anon)/_components/common/realEstate/realEstateContainer/RealEstateContainer';
-import { BrokerContainer } from '@/(anon)/_components/common/broker/brokerContainer/BrokerContainer';
+import { RealEstateContainer } from '@/(anon)/@detail/steps/[step-number]/[detail]/_components/contents/realEstate/realEstateContainer/RealEstateContainer';
+import { BrokerContainer } from '@/(anon)/@detail/steps/[step-number]/[detail]/_components/contents/broker/brokerContainer/BrokerContainer';
+import { TransactionSearchWrapperRef } from './contents/TransactionSearchWrapper';
+import { TransactionSearchContainer } from '@/(anon)/@detail/steps/[step-number]/[detail]/_components/contents/transactionSearch/transactionSearchContainer/TransactionSearchContainer';
+import { PageIndicator } from './PageIndicator';
+import CombinedContent from './contents/CombinedContent';
 
-export default function ModalContent() {
+// RegionData 타입 정의 (기존 호환성을 위해 유지)
+interface RegionData {
+  region: string;
+  depositRange: string;
+  priorityAmount: string;
+  option: string;
+}
+
+interface ModalContentProps {
+  transactionSearchContainerRef?: React.RefObject<TransactionSearchWrapperRef | null>;
+}
+
+export default function ModalContent({
+  transactionSearchContainerRef,
+}: ModalContentProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const swiperRef = useRef<SwiperType | null>(null);
-  const [stepContentData, setStepContentData] = useState<StepContentData | null>(null);
+  const [stepContentData, setStepContentData] =
+    useState<StepContentData | null>(null);
   const [dataType, setDataType] = useState<string>('default');
 
   // URL에서 stepNumber와 detail 가져오기
@@ -27,80 +45,38 @@ export default function ModalContent() {
   const stepNumber = stepUrlData?.stepNumber?.toString() || '1';
   const detail = stepUrlData?.detail?.toString() || '1';
 
-  // 특별한 컴포넌트를 사용할 단계들 정의
-  const specialSteps = {
-    taxCert:
-      (stepNumber === '1' && detail === '5') ||
-      (stepNumber === '5' && detail === '1'),
-    broker: stepNumber === '3' && detail === '1',
-    realEstate: [
-      { step: '1', detail: '1' },
-      { step: '2', detail: '2' },
-      { step: '6', detail: '3' },
-      { step: '5', detail: '2' },
-      { step: '4', detail: '1' },
-    ].some((route) => route.step === stepNumber && route.detail === detail),
-  };
+  // 특별한 컴포넌트는 JSON 파일로 처리
 
-  // JSON 파일에서 콘텐츠 데이터 가져오기 (특별한 컴포넌트가 아닌 경우에만)
+  // JSON 파일에서 콘텐츠 데이터 가져오기
   useEffect(() => {
-    const shouldLoadJsonData =
-      !specialSteps.taxCert && !specialSteps.broker && !specialSteps.realEstate;
-    if (shouldLoadJsonData) {
-      const loadContentData = async () => {
-        try {
-          const contentModule = await import(
-            `./contents/data/step-${stepNumber}-${detail}-contents.json`
-          );
-          setStepContentData(contentModule.default);
-          setDataType(contentModule.default.dataType || 'default');
-        } catch {
-          console.log(
-            `Step content data not found for step-${stepNumber}-${detail}, using default DataGrid`
-          );
-          setDataType('default');
-        }
-      };
+    const loadContentData = async () => {
+      try {
+        const contentModule = await import(
+          `./contents/data/step-${stepNumber}-${detail}-contents.json`
+        );
+        setStepContentData(contentModule.default);
+        setDataType(contentModule.default.dataType || 'default');
+      } catch {
+        setDataType('default');
+      }
+    };
 
-      loadContentData();
-    }
-  }, [stepNumber, detail, specialSteps]);
-
-
-  // 특별한 컴포넌트 렌더링 함수
-  const renderSpecialComponent = () => {
-    if (specialSteps.taxCert) {
-      return <TaxCertResultDisplay />;
-    }
-
-    if (specialSteps.broker) {
-      return <BrokerContainer />;
-    }
-
-    if (specialSteps.realEstate) {
-      return <RealEstateContainer />;
-    }
-
-    return null;
-  };
+    loadContentData();
+  }, [stepNumber, detail]);
 
   // Swiper 콘텐츠 렌더링 함수
   const renderSwiperContent = (pageData: LegacyContentSection[]) => {
     switch (dataType) {
       case 'TextOnly':
-        return <TextOnly data={pageData} />;
-      case 'Table':
-        return (
-          <Table
-            data={pageData as unknown as { left: string; right?: string }[]}
-          />
-        );
+        return <TextOnly data={pageData} currentPage={currentPage} />;
       case 'List':
         return (
           <List
-            data={pageData as unknown as { left: string; right?: string }[]}
+            title={(pageData[0] as { title?: string })?.title}
+            data={pageData as unknown as string[]}
           />
         );
+
       case 'DataGrid':
         return (
           <DataGrid
@@ -111,9 +87,28 @@ export default function ModalContent() {
         return <CheckListGroup data={pageData} />;
       case 'RadioGroup':
         return <RadioGroup data={pageData} />;
+      case 'RealEstateContainer':
+        return <RealEstateContainer />;
+      case 'BrokerContainer':
+        return <BrokerContainer />;
+      case 'TransactionSearchContainer':
+        return <TransactionSearchContainer />;
       default:
-        console.log('renderSwiperContent - default case, dataType:', dataType);
         return null;
+    }
+  };
+
+  // 스크롤을 맨 위로 올리는 함수
+  const scrollToTop = () => {
+    // CSS 클래스명에 공백이 있으므로 직접 스타일 속성으로 찾기
+    const scrollableContainer = document.querySelector(
+      '[class*="max-h-[calc(100vh-200px)]"]'
+    ) as HTMLElement;
+    if (scrollableContainer) {
+      scrollableContainer.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
     }
   };
 
@@ -123,6 +118,8 @@ export default function ModalContent() {
     if (swiperRef.current) {
       swiperRef.current.slideTo(page);
     }
+    // 페이지 변경 시 스크롤을 맨 위로 올리기
+    scrollToTop();
   };
 
   // 공통 헤더 컴포넌트
@@ -134,21 +131,12 @@ export default function ModalContent() {
     </div>
   );
 
-  // 특별한 컴포넌트가 있는 경우 렌더링
-  const specialComponent = renderSpecialComponent();
-  if (specialComponent) {
-    return (
-      <>
-        <StepHeader />
-        <div className={styles.scrollableContent}>
-          <div className={styles.mainContent}>{specialComponent}</div>
-        </div>
-      </>
-    );
-  }
-
-  // CombinedContent 타입인 경우 sections를 사용
-  if (stepContentData && stepContentData.dataType === 'CombinedContent' && stepContentData.sections) {
+  // CombinedContent 타입인 경우 sections를 사용하여 type별로 스와이퍼 분리
+  if (
+    stepContentData &&
+    stepContentData.dataType === 'CombinedContent' &&
+    stepContentData.sections
+  ) {
     const handlePageChange = (page: number) => {
       setCurrentPage(page);
       if (swiperRef.current) {
@@ -159,109 +147,58 @@ export default function ModalContent() {
     return (
       <>
         <StepHeader />
-
-        <div className={styles.scrollableContent}>
-          <Swiper
-            spaceBetween={50}
-            slidesPerView={1}
-            className={styles.swiperContainer}
-            onSlideChange={(swiper) => setCurrentPage(swiper.activeIndex)}
-            onSwiper={(swiper) => {
-              swiperRef.current = swiper;
-            }}
-          >
-            {stepContentData.data.map(
-              (pageData: LegacyContentSection[], pageIndex: number) => (
-                <SwiperSlide key={pageIndex}>
-                  <div className={styles.mainContent}>
-                    {renderSwiperContent(pageData)}
-                  </div>
-                </SwiperSlide>
-              )
-            )}
-          </Swiper>
-        </div>
-
-        {/* Swiper로 각 섹션을 별도 슬라이드로 렌더링 */}
-        <Swiper
-          spaceBetween={50}
-          slidesPerView={1}
-          className={styles.swiperContainer}
-          onSlideChange={(swiper) => setCurrentPage(swiper.activeIndex)}
-          onSwiper={(swiper) => {
-            swiperRef.current = swiper;
-          }}
-        >
-          {stepContentData.sections.map((section, sectionIndex) => (
-            <SwiperSlide key={sectionIndex}>
-              <div className={styles.mainContent}>
-                {/* 각 섹션의 제목과 부제목 표시 */}
-                {(section.title || section.subtitle) && (
-                  <div className={styles.sectionHeader}>
-                    {section.title && (
-                      <h3 className={styles.sectionTitle}>{section.title}</h3>
-                    )}
-                    {section.subtitle && (
-                      <p className={styles.sectionSubtitle}>{section.subtitle}</p>
-                    )}
-                  </div>
-                )}
-                
-                {/* 섹션 타입에 따른 컴포넌트 렌더링 */}
-                {section.type === 'TextOnly' && (
-                  <TextOnly data={section.data} />
-                )}
-                {section.type === 'RadioGroup' && (
-                  <RadioGroup data={section.data} />
-                )}
-                {section.type === 'Table' && (
-                  <Table
-                    data={section.data as unknown as { left: string; right?: string }[]}
-                  />
-                )}
-                {section.type === 'List' && (
-                  <List
-                    data={section.data as unknown as { left: string; right?: string }[]}
-                  />
-                )}
-                {section.type === 'DataGrid' && (
-                  <DataGrid
-                    data={section.data as unknown as { left: string; right?: string }[]}
-                  />
-                )}
-                {section.type === 'CheckListGroup' && (
-                  <CheckListGroup data={section.data} />
-                )}
-              </div>
-            </SwiperSlide>
-          ))}
-        </Swiper>
-        
-        {/* 페이지 인디케이터 */}
-        {stepContentData.sections.length > 1 && (
-          <div className={styles.pageIndicator} aria-label='페이지 인디케이터'>
-            {stepContentData.sections.map((_: unknown, index: number) => (
-              <button
-                key={index}
-                className={`${styles.pageDot} ${
-                  index === currentPage
-                    ? styles.pageDotActive
-                    : styles.pageDotInactive
-                }`}
-                aria-label={`페이지 ${index + 1}${
-                  index === currentPage ? ' (현재)' : ''
-                }`}
-                onClick={() => handlePageChange(index)}
-              />
-            ))}
-          </div>
-        )}
+        <CombinedContent
+          sections={stepContentData.sections}
+          stepNumber={stepNumber}
+          detail={detail}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+          transactionSearchContainerRef={transactionSearchContainerRef}
+          swiperRef={swiperRef}
+        />
       </>
     );
   }
 
-  // JSON 데이터가 있는 경우 Swiper로 렌더링
-  if (stepContentData && stepContentData.dataType && stepContentData.data) {
+  // JSON 데이터가 있는 경우 렌더링
+  if (stepContentData && stepContentData.dataType) {
+    // Table 타입인 경우 Swiper 없이 직접 렌더링
+    if (stepContentData.dataType === 'Table') {
+      return (
+        <>
+          <StepHeader />
+          <div className={styles.scrollableContent}>
+            <div className={styles.swiperContainer}>
+              <div className={styles.mainContent}>
+                <Table
+                  title={stepContentData.title || '테이블 제목'}
+                  columnTitles={stepContentData.columnTitles || ['1', '2', '3']}
+                  description={stepContentData.description}
+                  data={stepContentData.data as unknown as RegionData[]}
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    // data가 없는 경우 (특별한 컴포넌트들)
+    if (!stepContentData.data) {
+      return (
+        <>
+          <StepHeader />
+          <div className={styles.scrollableContent}>
+            <div className={styles.swiperContainer}>
+              <div className={styles.mainContent}>
+                {renderSwiperContent([])}
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+
     return (
       <>
         <StepHeader />
@@ -271,7 +208,10 @@ export default function ModalContent() {
             spaceBetween={50}
             slidesPerView={1}
             className={styles.swiperContainer}
-            onSlideChange={(swiper) => setCurrentPage(swiper.activeIndex)}
+            onSlideChange={(swiper) => {
+              setCurrentPage(swiper.activeIndex);
+              scrollToTop();
+            }}
             onSwiper={(swiper) => {
               swiperRef.current = swiper;
             }}
@@ -279,7 +219,10 @@ export default function ModalContent() {
             {stepContentData.data.map(
               (pageData: LegacyContentSection[], pageIndex: number) => (
                 <SwiperSlide key={pageIndex}>
-                  <div className={styles.mainContent}>
+                  <div
+                    className={styles.mainContent}
+                    style={{ paddingBottom: '80px' }}
+                  >
                     {renderSwiperContent(pageData)}
                   </div>
                 </SwiperSlide>
@@ -289,24 +232,11 @@ export default function ModalContent() {
         </div>
 
         {/* 페이지 인디케이터 */}
-        {stepContentData.data.length > 1 && (
-          <div className={styles.pageIndicator} aria-label='페이지 인디케이터'>
-            {stepContentData.data.map((_: unknown, index: number) => (
-              <button
-                key={index}
-                className={`${styles.pageDot} ${
-                  index === currentPage
-                    ? styles.pageDotActive
-                    : styles.pageDotInactive
-                }`}
-                aria-label={`페이지 ${index + 1}${
-                  index === currentPage ? ' (현재)' : ''
-                }`}
-                onClick={() => handlePageChange(index)}
-              />
-            ))}
-          </div>
-        )}
+        <PageIndicator
+          totalPages={stepContentData.data.length}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+        />
       </>
     );
   }
@@ -316,7 +246,7 @@ export default function ModalContent() {
     <>
       <StepHeader />
       <div className={styles.scrollableContent}>
-        <div className={styles.mainContent}>
+        <div className={styles.mainContent} style={{ paddingBottom: '80px' }}>
           <DataGrid data={[]} />
         </div>
       </div>

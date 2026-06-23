@@ -3,9 +3,11 @@ import { Location } from '@/(anon)/main/_components/types/map.types';
 import { DaumPostcodeData } from '@/(anon)/main/_components/types/mainPage.types';
 import { placesApi } from '@libs/api_front/places.api';
 import { useMapStore } from '@libs/stores/map/mapStore';
+import { useToastStore } from '@libs/stores/toastStore';
 
 export const useAddressSearch = () => {
   const { setMapCenter, setSearchLocationMarker } = useMapStore();
+  const { showError } = useToastStore();
 
   // 주소를 좌표로 변환하는 함수
   const addressToCoordinatesMutation = useMutation({
@@ -76,7 +78,7 @@ export const useAddressSearch = () => {
     },
     onError: (error) => {
       console.error('키워드 검색 실패:', error);
-      alert('키워드 검색 중 오류가 발생했습니다.');
+      showError('키워드 검색 중 오류가 발생했습니다.');
     },
   });
 
