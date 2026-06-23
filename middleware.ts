@@ -81,6 +81,9 @@ export async function middleware(req: NextRequest) {
   // 2. 인증 상태 확인
   const token = await getToken({ req });
   const isAuthenticated = !!token;
+  const isIncomplete = token?.isIncomplete; //SSO로 회원가입에 필요한 모든 정보가 입력되기 전 상태
+
+  const isOnExtraPage = req.nextUrl.pathname.startsWith('/signup/extra');
 
   // 3. 공개 경로 (비인증 허용)
   const publicPaths = new Set<string>(['/', '/signin', '/signup']);
@@ -90,6 +93,20 @@ export async function middleware(req: NextRequest) {
   if (isAuthenticated && (pathname === '/signin' || pathname === '/signup')) {
     const url = req.nextUrl.clone();
     url.pathname = '/main';
+    return NextResponse.redirect(url);
+  }
+
+  // 5-A. SSO 유저가 추가 정보 입력 전이면 /signin/extra로 리디렉트
+  if (isAuthenticated && isIncomplete && !isOnExtraPage) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/signup/extra';
+    return NextResponse.redirect(url);
+  }
+
+  // 5-B. 추가 정보 입력 완료 → extra 페이지에 있으면 홈으로 리디렉션
+  if (isAuthenticated && !isIncomplete && isOnExtraPage) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/';
     return NextResponse.redirect(url);
   }
 

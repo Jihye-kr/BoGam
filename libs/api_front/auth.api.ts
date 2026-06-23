@@ -1,5 +1,6 @@
 import { frontendAxiosInstance } from './axiosInstance';
 import { SignupInput } from '@/(anon)/signup/_components/schema';
+import { ExtraInput } from '@/(anon)/signup/extra/_components/extraSchema';
 
 export interface DeleteUserResponse {
   success: boolean;
@@ -10,7 +11,11 @@ export interface DeleteUserResponse {
 export interface SignupResponse {
   success: boolean;
   message?: string;
-  error?: string;
+}
+
+export interface ExtraSignupResposne {
+  success: boolean;
+  message?: string;
 }
 
 class AuthApi {
@@ -42,6 +47,18 @@ class AuthApi {
 
     const response = await axios.delete<DeleteUserResponse>(
       '/api/users/delete-user'
+    );
+    return response.data;
+  }
+
+  // ✅ 카카오 SSO
+  public async updateKakaoUser(
+    data: ExtraInput
+  ): Promise<{ success: boolean; message?: string }> {
+    const axios = frontendAxiosInstance.getAxiosInstance();
+    const response = await axios.post<ExtraSignupResposne>(
+      '/api/users/kakao-update-info',
+      data
     );
     return response.data;
   }
