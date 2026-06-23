@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { styles } from './page.styles';
-import ProgressBarChart from '@/(anon)/_components/common/progress/ProgressBarChart';
+import ProgressBarChart from '@/(anon)/steps/_components/progress/ProgressBarChart';
 import FlipBookSection from '@/(anon)/steps/[step-number]/_components/FlipBookSection';
 import FlipPages, { PageData } from '@/(anon)/steps/[step-number]/_components/FlipPages';
 import { getStepSpecificMetadata, getStepSpecificJsonLd } from '@metadata/stepMetadata';
@@ -59,24 +59,6 @@ export async function generateMetadata({
   // 환경별 API URL 설정
   const isProduction = process.env.NODE_ENV === 'production';
   const baseUrl = isProduction ? 'https://lion5-bogam.site' : 'http://localhost:3000';
-  
-  // 페이지 데이터 가져오기
-  let pages: PageData[] = [];
-  try {
-    const pagesData = await import(`./stepData/${stepNumber}.json`);
-    if (Array.isArray(pagesData.default)) {
-      pages = pagesData.default[0]?.pages || [];
-    } else if (pagesData.default?.pages) {
-      pages = pagesData.default.pages;
-    } else if (Array.isArray(pagesData)) {
-      pages = pagesData[0]?.pages || [];
-    } else if (pagesData.pages) {
-      pages = pagesData.pages;
-    }
-  } catch (error) {
-    console.error('JSON 파일 로드 실패:', error);
-    pages = [];
-  }
 
   const stepMetadata = getStepSpecificMetadata(stepNumber);
 

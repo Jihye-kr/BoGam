@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useDragToClose } from './_components/useDragToClose';
 import { styles } from './StepDetail.styles';
 import ModalDragHandle from './_components/ModalDragHandle';
 import ModalContent from './_components/ModalContent';
 import { ConfirmModal } from '@/(anon)/_components/common/modal/ConfirmModal';
 import { useModalStore } from '@libs/stores/modalStore';
-import { TaxCertWrapperRef } from './_components/contents/TaxCertWrapper';
+import { useTaxCertStore } from '@libs/stores/taxCertStore';
+import { TransactionSearchWrapperRef } from './_components/contents/TransactionSearchWrapper';
+import { RealEstateTwoWayContent } from '@/(anon)/@detail/steps/[step-number]/[detail]/_components/contents/realEstate/realEstateTwoWayContent/RealEstateTwoWayContent';
+import { useRealEstateStore } from '@libs/stores/realEstateStore';
 
 interface StepDetailProps {
   isOpen: boolean;
@@ -15,8 +18,53 @@ interface StepDetailProps {
 }
 
 export default function StepDetailPage({ isOpen, onClose }: StepDetailProps) {
-  const [showSimpleAuthModal, setShowSimpleAuthModal] = useState(false);
-  const taxCertWrapperRef = useRef<TaxCertWrapperRef | null>(null);
+  const transactionSearchWrapperRef =
+    useRef<TransactionSearchWrapperRef | null>(null);
+
+  // TaxCert Store에서 상태 및 핸들러 가져오기
+  const {
+    showSimpleAuthModal,
+    setShowSimpleAuthModal,
+    handleSimpleAuthApprove,
+    handleSimpleAuthCancel,
+  } = useTaxCertStore();
+
+  // 전역 store 사용
+  const {
+    showTwoWayModal,
+    twoWaySelectedAddress,
+    response,
+    handleAddressSelect,
+    handleCloseTwoWayModal,
+    setShowTwoWayModal,
+    setTwoWaySelectedAddress,
+  } = useRealEstateStore();
+
+  const {
+    isOpen: isModalOpen,
+    content,
+    confirmModal,
+    cancelModal,
+    closeModal,
+  } = useModalStore();
+
+  // onClose 함수를 확장하여 모달 초기화 포함
+  const handleClose = useCallback(() => {
+    // 모든 모달 상태 초기화
+    setShowTwoWayModal(false);
+    setTwoWaySelectedAddress(null);
+    closeModal();
+    setShowSimpleAuthModal(false); // Store의 상태도 초기화
+
+    // 원래 onClose 호출
+    onClose();
+  }, [
+    setShowTwoWayModal,
+    setTwoWaySelectedAddress,
+    closeModal,
+    setShowSimpleAuthModal,
+    onClose,
+  ]);
 
   const {
     dragState,
@@ -25,31 +73,7 @@ export default function StepDetailPage({ isOpen, onClose }: StepDetailProps) {
     handleTouchMove,
     handleTouchEnd,
     handleMouseDown,
-  } = useDragToClose(isOpen, onClose);
-
-  const {
-    isOpen: isModalOpen,
-    content,
-    confirmModal,
-    cancelModal,
-  } = useModalStore();
-
-  // 간편인증 모달 관련 핸들러들
-  const handleShowSimpleAuthModal = () => {
-    setShowSimpleAuthModal(true);
-  };
-
-  const handleSimpleAuthApprove = () => {
-    // TaxCertWrapper의 ref를 통해 TaxCertContainer의 승인 로직 실행
-    if (taxCertWrapperRef.current) {
-      taxCertWrapperRef.current.handleSimpleAuthApprove();
-    }
-    setShowSimpleAuthModal(false);
-  };
-
-  const handleSimpleAuthCancel = () => {
-    setShowSimpleAuthModal(false);
-  };
+  } = useDragToClose(isOpen, handleClose);
 
   // 모달이 열릴 때 배경 스크롤 차단
   useEffect(() => {
@@ -77,7 +101,7 @@ export default function StepDetailPage({ isOpen, onClose }: StepDetailProps) {
   }
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
+    <div className={styles.modalOverlay} onClick={handleClose}>
       <div
         ref={modalRef}
         className={styles.modalContent}
@@ -92,14 +116,11 @@ export default function StepDetailPage({ isOpen, onClose }: StepDetailProps) {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onMouseDown={handleMouseDown}
-          onClose={onClose}
+          onClose={handleClose}
         />
 
         <ModalContent
-          onShowSimpleAuthModal={handleShowSimpleAuthModal}
-          onSimpleAuthApprove={handleSimpleAuthApprove}
-          onSimpleAuthCancel={handleSimpleAuthCancel}
-          taxCertContainerRef={taxCertWrapperRef}
+          transactionSearchContainerRef={transactionSearchWrapperRef}
         />
       </div>
 
@@ -109,7 +130,7 @@ export default function StepDetailPage({ isOpen, onClose }: StepDetailProps) {
           isOpen={isModalOpen}
           title={content.title}
           icon={content.icon}
-          onConfirm={confirmModal}
+          onConfirm={content.onConfirm ? confirmModal : undefined}
           onCancel={cancelModal}
           confirmText={content.confirmText}
           cancelText={content.cancelText}
@@ -136,6 +157,23 @@ export default function StepDetailPage({ isOpen, onClose }: StepDetailProps) {
             * 4분 30초 내에 승인/취소를 완료해주세요.
           </p>
         </div>
+      </ConfirmModal>
+
+      {/* 2-way 인증 모달 */}
+      <ConfirmModal
+        isOpen={showTwoWayModal}
+        title='부동산 목록에서 선택하세요'
+        onCancel={handleCloseTwoWayModal || (() => {})}
+        cancelText='취소'
+        icon='info'
+        isLoading={false}
+        onConfirm={undefined}
+      >
+        <RealEstateTwoWayContent
+          resAddrList={response?.resAddrList || []}
+          selectedAddress={twoWaySelectedAddress}
+          onAddressSelect={handleAddressSelect || (() => {})}
+        />
       </ConfirmModal>
     </div>
   );

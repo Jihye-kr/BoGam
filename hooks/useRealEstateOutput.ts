@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ApiResponse } from '@/(anon)/_components/common/realEstate/types';
+import { ApiResponse } from '@/(anon)/@detail/steps/[step-number]/[detail]/_components/contents/realEstate/types';
 import { useUserAddressStore } from '@libs/stores/userAddresses/userAddressStore';
 import { useGetRealEstateFromDB } from '@/hooks/useRealEstate';
 import { useRiskAssessment } from '@/hooks/useRiskAssessment';
@@ -25,7 +25,7 @@ export const useRealEstateOutput = ({
   );
 
   // response prop이 있으면 그것을 사용, 없으면 dbResponse 사용
-  const displayResponse: ApiResponse | null = response || dbResponse || null;
+  const displayResponse: ApiResponse | null = response || (dbResponse as ApiResponse) || null;
 
   // 현재 라우팅에서 step number 추출
   useEffect(() => {

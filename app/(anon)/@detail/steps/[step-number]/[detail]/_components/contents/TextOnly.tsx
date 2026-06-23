@@ -9,6 +9,7 @@ import CircularIconBadge from '@/(anon)/_components/common/circularIconBadges/Ci
 import { useUserAddressStore } from '@libs/stores/userAddresses/userAddressStore';
 import { parseStepUrl } from '@utils/stepUrlParser';
 import Button from '@/(anon)/_components/common/button/Button';
+import LoadingOverlay from '@/(anon)/_components/common/loading/LoadingOverlay';
 
 interface ContentSection {
   title?: string;
@@ -43,9 +44,10 @@ interface ContentSection {
 
 interface TextOnlyProps {
   data: ContentSection[];
+  currentPage: number;
 }
 
-const TextOnly = ({ data }: TextOnlyProps) => {
+const TextOnly = ({ data, currentPage }: TextOnlyProps) => {
   // 전역 store에서 선택된 주소 가져오기
   const selectedAddress = useUserAddressStore((state) => state.selectedAddress);
 
@@ -76,38 +78,37 @@ const TextOnly = ({ data }: TextOnlyProps) => {
     stepResultData && 'jsonDetails' in stepResultData
       ? stepResultData.jsonDetails
       : undefined;
-
-  // json이 {}이거나 에러 시 기본값으로 초기화
+  //console.log('currentPage', currentPage);
+  // currentPage가 변경될 때마다 해당 슬라이드를 읽음 처리
   useEffect(() => {
-    if (data.length === 0 || hasInitialized.current) {
+    if (data.length === 0 || !jsonDetails) {
       return;
     }
 
-    // jsonDetails가 {}이거나 에러가 발생했을 때 POST 요청
-    const shouldInitialize =
-      (isError && !hasInitialized.current) ||
-      (jsonDetails && Object.keys(jsonDetails).length === 0);
+    // currentPage가 유효하지 않으면 리턴
+    if (typeof currentPage !== 'number' || isNaN(currentPage)) {
+      return;
+    }
 
-    if (
-      shouldInitialize &&
-      selectedAddress?.id &&
-      stepInfo?.stepNumber &&
-      stepInfo?.detail
-    ) {
-      const defaultDetails: Record<string, 'match'> = {
-        열람: 'match', // TextOnly는 기본적으로 열람 완료 상태
+    // 현재 슬라이드가 이미 읽음 처리되었는지 확인
+    const slideKey = `읽음_슬라이드${currentPage + 1}`;
+    if (jsonDetails[slideKey] === 'match') {
+      return;
+    }
+
+    if (selectedAddress?.id && stepInfo?.stepNumber && stepInfo?.detail) {
+      // 기존 jsonDetails에서 현재 슬라이드만 match로 변경
+      const updatedDetails = {
+        ...jsonDetails,
+        [slideKey]: 'match' as const,
       };
-
-      const logMessage = isError
-        ? '400 에러 시 기본값 초기화 진행'
-        : '빈 jsonDetails 시 기본값 초기화 진행';
 
       // DB 저장
       upsertStepResult.mutate({
         userAddressNickname: selectedAddress.nickname,
         stepNumber: stepInfo.stepNumber,
         detail: stepInfo.detail,
-        jsonDetails: defaultDetails,
+        jsonDetails: updatedDetails,
       });
 
       // 쿼리 완전 중단
@@ -116,27 +117,22 @@ const TextOnly = ({ data }: TextOnlyProps) => {
         stepInfo.stepNumber,
         stepInfo.detail
       );
-
-      hasInitialized.current = true;
     }
-  }, [
-    stepData,
-    isError,
-    data,
-    selectedAddress?.id,
-    selectedAddress?.nickname,
-    stepInfo?.stepNumber,
-    stepInfo?.detail,
-    upsertStepResult,
-    removeQueries,
-  ]);
+  }, [currentPage, jsonDetails]);
 
   // 로딩 상태
   if (isLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.loadingContainer}>
-          <div>로딩 중...</div>
+          <LoadingOverlay
+            isVisible={true}
+            title="데이터를 불러오고 있습니다..."
+            currentStep={1}
+            totalSteps={1}
+            variant="inline"
+            spinnerSize="small"
+          />
         </div>
       </div>
     );
@@ -150,22 +146,27 @@ const TextOnly = ({ data }: TextOnlyProps) => {
       </div>
     );
   }
-
+  //console.log('jsonDetails', jsonDetails);
   // stepData 표시 함수 - jsonDetails의 값들을 CircularIconBadge로 표시
-  const renderStepData = () => (
-    <div className={styles.stepDataSection}>
-      <div className={styles.badgeContainer}>
-        {Object.entries(jsonDetails || {}).map(([key, value]) => (
-          <CircularIconBadge
-            key={key}
-            type={value as 'match' | 'mismatch' | 'unchecked'}
-            size='sm'
-          />
-        ))}
-        <span className={styles.stepDataTitle}>읽음</span>
+  const renderStepData = () => {
+    const slideKey = `읽음_슬라이드${currentPage + 1}`;
+    const slideValue = jsonDetails?.[slideKey];
+    
+    return (
+      <div className={styles.stepDataSection}>
+        <div className={styles.badgeContainer}>
+          {slideValue && (
+            <CircularIconBadge
+              key={slideKey}
+              type={slideValue as 'match' | 'mismatch' | 'unchecked'}
+              size='sm'
+            />
+          )}
+          <span className={styles.stepDataTitle}>읽음</span>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // data가 배열인 경우만 처리
   if (Array.isArray(data) && data.length > 0) {
@@ -274,8 +275,8 @@ const TextOnly = ({ data }: TextOnlyProps) => {
           </div>
         ))}
 
-        {/* Step5Detail3Component에서는 스텝 데이터를 표시하지 않음 */}
-        {!window.location.pathname.includes('/5/3') && renderStepData()}
+        {/* 스텝 데이터 표시 */}
+        {renderStepData()}
       </div>
     );
   }
@@ -285,8 +286,8 @@ const TextOnly = ({ data }: TextOnlyProps) => {
     <div className={styles.container}>
       <div className={styles.noDataContainer}>데이터가 없습니다.</div>
 
-      {/* Step5Detail3Component에서는 스텝 데이터를 표시하지 않음 */}
-      {!window.location.pathname.includes('/5/3') && renderStepData()}
+      {/* 스텝 데이터 표시 */}
+      {renderStepData()}
     </div>
   );
 };
