@@ -1,13 +1,16 @@
 export const styles = {
-  // Container
-  container: "p-5 min-h-screen bg-white",
+  // 메인 컨테이너 flex 스타일
+  mainContainer: 'flex flex-col w-full max-w-[480px] h-[calc(100vh-4rem)]',
   
-  // Content
-  content: "text-center py-10 px-5",
+  // Progress 영역 스타일 (15%)
+  stateIconArea: 'w-full h-[15%] relative flex flex-col p-4',
   
-  // Title
-  title: "text-2xl font-semibold text-gray-800 mb-8",
+  // HTMLFlipBook 영역 스타일 (85%)
+  flipBookArea: 'w-full max-w-[480px] h-full flex items-center overflow-hidden',
   
-  // Button
-  clickButton: "bg-blue-500 text-white border-none py-3 px-6 rounded-lg text-base font-medium cursor-pointer transition-colors hover:bg-blue-600 active:bg-blue-700"
+  // 스크린 리더 전용 텍스트 스타일
+  srOnly: 'sr-only',
+  
+  // 진행 상황 컨테이너 스타일
+  progressContainer: 'flex flex-col gap-4 w-full',
 } as const;

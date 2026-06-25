@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@libs/auth';
 import { AddUserAddressUsecase } from '@be/applications/users/usecases/AddUserAddressUsecase';
+import { DeleteUserAddressUsecase } from '@be/applications/users/usecases/DeleteUserAddressUsecase';
+import { UpdateUserAddressUsecase } from '@be/applications/users/usecases/UpdateUserAddressUsecase';
 import { AddUserAddressRepositoryImpl } from '@be/infrastructure/repository/AddUserAddressRepositoryImpl';
+import { DeleteUserAddressRepositoryImpl } from '@be/infrastructure/repository/DeleteUserAddressRepositoryImpl';
+import { UpdateUserAddressRepositoryImpl } from '@be/infrastructure/repository/UpdateUserAddressRepositoryImpl';
 import { UserRepositoryImpl } from '@be/infrastructure/repository/UserRepositoryImpl';
 import { AddUserAddressRequestDto } from '@be/applications/users/dtos/AddUserAddressDto';
+import { DeleteUserAddressRequestDto } from '@be/applications/users/dtos/DeleteUserAddressDto';
+import { UpdateUserAddressRequestDto } from '@be/applications/users/dtos/UpdateUserAddressDto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,8 +30,7 @@ export async function POST(request: NextRequest) {
       !body.latitude ||
       !body.longitude ||
       !body.legalDistrictCode ||
-      !body.dong ||
-      !body.ho
+      !body.dong
     ) {
       return NextResponse.json(
         { success: false, message: '주소 정보가 불완전합니다.' },
@@ -51,6 +56,107 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('UserAddress API error:', error);
+    return NextResponse.json(
+      { success: false, message: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.nickname) {
+      return NextResponse.json(
+        { success: false, message: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const userAddressId = searchParams.get('userAddressId');
+
+    if (!userAddressId) {
+      return NextResponse.json(
+        { success: false, message: '사용자 주소 ID가 필요합니다.' },
+        { status: 400 }
+      );
+    }
+
+    const body: UpdateUserAddressRequestDto = await request.json();
+
+    // UpdateUserAddressUsecase 실행
+    const updateUserAddressRepository = new UpdateUserAddressRepositoryImpl();
+    const userRepository = new UserRepositoryImpl();
+    const updateUserAddressUsecase = new UpdateUserAddressUsecase(
+      updateUserAddressRepository,
+      userRepository
+    );
+
+    const requestDto: UpdateUserAddressRequestDto = {
+      ...body,
+      userAddressId: parseInt(userAddressId),
+    };
+
+    const result = await updateUserAddressUsecase.updateUserAddress(
+      session.user.nickname,
+      requestDto
+    );
+
+    return NextResponse.json(result, {
+      status: result.success ? 200 : 400,
+    });
+  } catch (error) {
+    console.error('UserAddress PUT API error:', error);
+    return NextResponse.json(
+      { success: false, message: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.nickname) {
+      return NextResponse.json(
+        { success: false, message: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const userAddressId = searchParams.get('userAddressId');
+
+    if (!userAddressId) {
+      return NextResponse.json(
+        { success: false, message: '사용자 주소 ID가 필요합니다.' },
+        { status: 400 }
+      );
+    }
+
+    // DeleteUserAddressUsecase 실행
+    const deleteUserAddressRepository = new DeleteUserAddressRepositoryImpl();
+    const deleteUserAddressUsecase = new DeleteUserAddressUsecase(
+      deleteUserAddressRepository
+    );
+
+    const requestDto: DeleteUserAddressRequestDto = {
+      userAddressId: parseInt(userAddressId),
+    };
+
+    const result = await deleteUserAddressUsecase.deleteUserAddress(
+      session.user.nickname,
+      requestDto
+    );
+
+    return NextResponse.json(result, {
+      status: result.success ? 200 : 400,
+    });
+  } catch (error) {
+    console.error('UserAddress DELETE API error:', error);
     return NextResponse.json(
       { success: false, message: '서버 오류가 발생했습니다.' },
       { status: 500 }

@@ -1,15 +1,64 @@
 import { prisma } from './prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../libs/auth';
 
 /**
- * userAddress 닉네임으로부터 ID를 가져오는 함수
- * @param nickname userAddress 닉네임
- * @returns userAddress ID 또는 null
+ * 세션에서 user nickname을 추출하는 함수
+ * @returns user nickname 또는 null
  */
-export async function getUserAddressIdByNickname(nickname: string): Promise<number | null> {
+export async function getUserNicknameFromSession(): Promise<string | null> {
   try {
-    const userAddress = await prisma.userAddress.findFirst({
+    const session = await getServerSession(authOptions);
+    return session?.user?.nickname || null;
+  } catch (error) {
+    console.error('❌ 세션에서 user nickname 추출 실패:', error);
+    return null;
+  }
+}
+
+/**
+ * user nickname으로 user id를 추출하는 함수
+ * @param nickname user nickname
+ * @returns user id 또는 null
+ */
+export async function getUserIdByNickname(
+  nickname: string
+): Promise<string | null> {
+  try {
+    const user = await prisma.user.findFirst({
       where: { nickname },
-      select: { id: true }
+      select: { id: true },
+    });
+
+    return user?.id || null;
+  } catch (error) {
+    console.error('❌ user ID 조회 실패:', error);
+    return null;
+  }
+}
+
+export async function getUserAddressId(
+  userAddressNickname: string
+): Promise<number | null> {
+  try {
+    const userNickname = await getUserNicknameFromSession();
+
+    if (!userNickname) {
+      return null;
+    }
+
+    const userId = await getUserIdByNickname(userNickname);
+
+    if (!userId) {
+      return null;
+    }
+
+    const userAddress = await prisma.userAddress.findFirst({
+      where: {
+        nickname: userAddressNickname,
+        userId,
+      },
+      select: { id: true },
     });
 
     return userAddress?.id || null;
@@ -18,22 +67,3 @@ export async function getUserAddressIdByNickname(nickname: string): Promise<numb
     return null;
   }
 }
-
-/**
- * userAddress ID로부터 닉네임을 가져오는 함수
- * @param id userAddress ID
- * @returns userAddress 닉네임 또는 null
- */
-export async function getUserAddressNicknameById(id: number): Promise<string | null> {
-  try {
-    const userAddress = await prisma.userAddress.findFirst({
-      where: { id },
-      select: { nickname: true }
-    });
-
-    return userAddress?.nickname || null;
-  } catch (error) {
-    console.error('❌ userAddress 닉네임 조회 실패:', error);
-    return null;
-  }
-} 

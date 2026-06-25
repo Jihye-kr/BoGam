@@ -5,31 +5,57 @@ import {
   StepResultResponseDto,
   StepResultSummaryDto,
 } from '@be/applications/stepResults/dtos/StepResultDto';
+import { getUserAddressId } from '@utils/userAddress';
 
 export class StepResultUsecase {
   constructor(private stepResultRepository: StepResultRepository) {}
 
   async getStepResults(
-    userAddressId: number,
-    mainNum?: number,
-    subNum?: number
+    userAddressNickname: string,
+    stepNumber?: number,
+    detail?: number
   ): Promise<StepResultResponseDto> {
     try {
-      const params: Record<string, unknown> = { userAddressId };
-
-      if (mainNum) {
-        params.mainNum = mainNum;
+      const userAddressId = await getUserAddressId(userAddressNickname);
+      
+      if (!userAddressId) {
+        return {
+          success: false,
+          error: '해당 주소를 찾을 수 없습니다.',
+        };
       }
 
-      if (subNum) {
-        params.subNum = subNum;
+      const params: Record<string, unknown> = { userAddressId };
+
+      // stepNumber와 detail이 모두 있는 경우 stepId로 변환
+      if (stepNumber && detail) {
+        const stepId = await this.stepResultRepository.findStepIdByMainSub(
+          stepNumber,
+          detail
+        );
+        if (stepId) {
+          params.stepId = stepId;
+        } else {
+          return {
+            success: false,
+            error: '해당 stepNumber와 detail에 맞는 스탭을 찾을 수 없습니다.',
+          };
+        }
+      } else {
+        // stepNumber나 detail 중 하나만 있는 경우 기존 방식 사용
+        if (stepNumber) {
+          params.stepNumber = stepNumber;
+        }
+        if (detail) {
+          params.detail = detail;
+        }
       }
 
       const stepResults = await this.stepResultRepository.findByParams(params);
 
-      // mainNum만 있는 경우 요약 정보 계산
-      if (mainNum && !subNum) {
-        const summary = this.calculateSummary(stepResults, mainNum);
+      // stepNumber만 있는 경우 또는 userAddressId만 있는 경우 요약 정보 계산
+      if ((stepNumber && !detail) || (!stepNumber && !detail)) {
+        const summary = this.calculateSummary(stepResults, stepNumber || 0);
         return {
           success: true,
           data: {
@@ -40,8 +66,8 @@ export class StepResultUsecase {
         };
       }
 
-      // subNum도 있는 경우 단일 결과 반환
-      if (mainNum && subNum) {
+      // detail도 있는 경우 단일 결과 반환
+      if (stepNumber && detail) {
         if (stepResults.length === 0) {
           return {
             success: false,
@@ -75,7 +101,7 @@ export class StepResultUsecase {
 
   private calculateSummary(
     stepResults: StepResultEntity[],
-    mainNum: number
+    stepNumber: number
   ): StepResultSummaryDto {
     const summary = stepResults.reduce(
       (acc: StepResultSummaryDto, result: StepResultEntity) => ({
@@ -83,14 +109,14 @@ export class StepResultUsecase {
         totalMatch: acc.totalMatch + (result.match || 0),
         totalUnchecked: acc.totalUnchecked + (result.unchecked || 0),
         stepCount: acc.stepCount + 1,
-        mainNum: mainNum,
+        stepNumber: stepNumber,
       }),
       {
         totalMismatch: 0,
         totalMatch: 0,
         totalUnchecked: 0,
         stepCount: 0,
-        mainNum: mainNum,
+        stepNumber: stepNumber,
       }
     );
 
@@ -103,16 +129,16 @@ export class StepResultUsecase {
     try {
       let stepId = dto.stepId;
 
-      // mainNum과 subNum이 제공된 경우 stepId 찾기
-      if (dto.mainNum && dto.subNum && !stepId) {
+      // stepNumber와 detail이 제공된 경우 stepId 찾기
+      if (dto.stepNumber && dto.detail && !stepId) {
         const foundStepId = await this.stepResultRepository.findStepIdByMainSub(
-          dto.mainNum,
-          dto.subNum
+          dto.stepNumber,
+          dto.detail
         );
         if (!foundStepId) {
           return {
             success: false,
-            error: '해당 mainNum과 subNum에 맞는 스탭을 찾을 수 없습니다.',
+            error: '해당 stepNumber와 detail에 맞는 스탭을 찾을 수 없습니다.',
           };
         }
         stepId = foundStepId;
@@ -122,7 +148,7 @@ export class StepResultUsecase {
       if (!stepId) {
         return {
           success: false,
-          error: 'stepId 또는 mainNum+subNum이 필요합니다.',
+          error: 'stepId 또는 stepNumber+detail이 필요합니다.',
         };
       }
 
@@ -133,7 +159,7 @@ export class StepResultUsecase {
         undefined, // mismatch - DB 트리거가 계산
         undefined, // match - DB 트리거가 계산
         undefined, // unchecked - DB 트리거가 계산
-        dto.details,
+        dto.jsonDetails, // jsonDetails를 details 컬럼에 저장
         new Date()
       );
 

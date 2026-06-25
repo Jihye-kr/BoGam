@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import styles from '@/(anon)/_components/onboarding/Splash.module.css';
+import { styles } from '@/(anon)/_components/onboarding/Splash.styles';
 
 export default function Splash({ onComplete }: { onComplete: () => void }) {
   const [exiting, setExiting] = useState(false);
@@ -10,11 +10,8 @@ export default function Splash({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       setExiting(true);
-      setTimeout(() => {
-        onComplete();
-      }, 700);
+      setTimeout(() => onComplete(), 700);
     }, 1500);
-
     return () => clearTimeout(timer);
   }, [onComplete]);
 

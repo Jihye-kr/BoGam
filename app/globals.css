@@ -1,55 +1,158 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* 공통 색/테마 */
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --brand: #4b72a6;
-  --border: #e5e7eb;
-  --text: #111827;
-  --muted: #6b7280;
-  --error: #d56666;
-  --bg: #ffffff;
-  --ring: rgba(75, 114, 166, 0.35);
+/* Toast 커스터마이징 */
+.toast-container {
+  font-family: 'Pretendard', sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+.toast-container .Toastify__toast {
+  border-radius: 12px;
+  font-weight: 500;
+  width: auto !important;
+  min-width: 300px;
+  max-width: 90vw;
+  padding: 12px 16px;
+  background-color: var(--brand-white);
+  color: var(--brand-dark-blue);
+  border: 1px solid var(--brand-light-blue);
+}
+
+/* Toast 타입별 스타일링 */
+.toast-container .Toastify__toast--success {
+  color: var(--brand-green);
+}
+
+.toast-container .Toastify__toast--error {
+  color: var(--error);
+}
+
+.toast-container .Toastify__toast--warning {
+  color: var(--brand-gold);
+}
+
+.toast-container .Toastify__toast--info {
+  color: var(--brand-blue);
+}
+
+/* Toast 진행 바 스타일 */
+.toast-container .Toastify__progress-bar {
+  background-color: var(--brand-blue);
+}
+
+.toast-container .Toastify__progress-bar--success {
+  background-color: var(--brand-green);
+}
+
+.toast-container .Toastify__progress-bar--error {
+  background-color: var(--error);
+}
+
+.toast-container .Toastify__progress-bar--warning {
+  background-color: var(--brand-gold);
+}
+
+.toast-container .Toastify__progress-bar--info {
+  background-color: var(--brand-blue);
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+  .toast-container .Toastify__toast {
+    min-width: 280px;
+    max-width: 95vw;
+    margin: 8px;
+    font-size: 14px;
+  }
+
+  .toast-container .Toastify__toast-container {
+    padding: 0 16px;
   }
 }
+
+/* ==== Theme Variables ==== */
+:root {
+  --brand-white: #ffffff;
+  --brand: #4b72a6;
+  --brand-dark-blue: #4f6273;
+  --brand-light-blue: #dfe9f2;
+  --brand-black: #111827;
+  --brand-dark-gray: #6d6d6d;
+  --brand-light-gray: #e5e7eb;
+  --brand-green: #4fa373;
+  --brand-dark-green: #527a6e;
+  --brand-gold: #a68a56;
+  --brand-blue: #3b82f6;
+  --error: #c24a4a;
+  --brand-shadow: #4b72a659;
+
+  --container: 100%;
+  --page-x: 28px;
+  --page-y: 24px;
+
+  --radius-lg: 16px;
+
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-book: 10px 10px 15px -5px rgba(0, 0, 0, 0.4);
+
+  --padding-xs: 8px;
+  --padding-sm: 12px;
+  --padding-lg: 20px;
+}
+
+/* 디바이스 해상도별 컨테이너 크기 */
+@media (min-width: 640px) {
+  :root {
+    --container: 480px;
+    --page-x: 18px;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --container: 680px;
+    --page-x: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --container: 960px;
+    --page-x: 32px;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --container: 1120px;
+    --page-x: 40px;
+  }
+}
+
+/* ==== 기본 세팅 ==== */
 html,
 body {
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui,
-    Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+    Roboto, 'Helvetica Neue', 'Segoe UI', sans-serif;
   font-size: 16px;
-  color: #222;
-  margin: 0;
-  padding: 0;
-  background-color: #fff;
-}
-
-/* 모바일 환경 뷰포트 최적화 */
-html {
-  -webkit-text-size-adjust: none; /* iOS 폰트 확대 방지 */
-}
-
-body {
-  max-width: 480px; /* 모바일 전용 중앙 정렬 */
+  color: var(--brand-black);
+  background-color: var(--background);
+  max-width: 480px;
   margin: 0 auto;
-  background-color: #fff;
+  padding: 0;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: none;
 }
 
-/* 스크롤바 제거 (모바일 UX 최적화) */
-::-webkit-scrollbar {
-  display: none;
+/* 모바일 최적화 */
+@media (max-width: 360px) {
+  html {
+    font-size: 14px;
+  }
 }
 
 /* 공통 리셋 */
@@ -57,6 +160,7 @@ body {
 *::before,
 *::after {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 a {
@@ -71,21 +175,73 @@ button {
   font-family: inherit;
 }
 
-/* 이미지 반응형 */
 img {
   max-width: 100%;
   height: auto;
   display: block;
 }
 
-/* 터치 하이라이트 제거 */
-* {
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+/* 스크롤바 제거 (모바일 UX) */
+::-webkit-scrollbar {
+  display: none;
 }
 
-/* 카드 & 컨테이너 기본 스타일 */
-.container {
-  padding: 16px;
+/* 커스텀 스크롤바 스타일 */
+.custom-scrollbar::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--brand-light-gray);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--brand-dark-gray);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-dark-blue);
+}
+
+/* Firefox 스크롤바 스타일 */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand-dark-gray) var(--brand-light-gray);
+}
+
+/* ==== PWA App Shell ==== */
+.app-shell {
+  min-height: 100dvh;
+  margin-inline: auto;
+  max-width: var(--container);
+
+  padding-left: max(var(--page-x), env(safe-area-inset-left));
+  padding-right: max(var(--page-x), env(safe-area-inset-right));
+  padding-top: calc(var(--page-y) + env(safe-area-inset-top));
+  padding-bottom: calc(var(--page-y) + env(safe-area-inset-bottom));
+}
+
+.box-lg {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--padding-lg);
+}
+
+/* 드롭다운 애니메이션 */
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 모바일 글자 크기 반응형 */
@@ -93,4 +249,47 @@ img {
   html {
     font-size: 14px;
   }
+}
+
+/* 모달 애니메이션 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* ==== Full Bleed Section (화면 끝까지 확장) ==== */
+.full-bleed {
+  margin-left: calc(-1 * max(var(--page-x), env(safe-area-inset-left)));
+  margin-right: calc(-1 * max(var(--page-x), env(safe-area-inset-right)));
+}
+
+.edge-container {
+  margin-inline: auto;
+  max-width: var(--container);
+
+  padding-left: max(var(--page-x), env(safe-area-inset-left));
+  padding-right: max(var(--page-x), env(safe-area-inset-right));
 }

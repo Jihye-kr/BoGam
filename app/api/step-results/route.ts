@@ -1,26 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { StepResultUsecase } from '@be/applications/stepResults/usecases/StepResultUsecase';
 import { StepResultRepositoryImpl } from '@be/infrastructure/repository/StepResultRepositoryImpl';
+import { getUserAddressId } from '@utils/userAddress';
 
-// GET /api/step-result?userAddressId=1&mainNum=1&subNum=2
+// GET /api/step-result?userAddressNickname=채원강남집&stepNumber=1&detail=2
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userAddressId = searchParams.get('userAddressId');
-    const mainNum = searchParams.get('mainNum');
-    const subNum = searchParams.get('subNum');
+    // userAddressNickname은 전역에서 가져옴.
+    const userAddressNickname = searchParams.get('userAddressNickname');
+    const stepNumber = searchParams.get('stepNumber');
+    const detail = searchParams.get('detail');
 
-    if (!userAddressId) {
-      return NextResponse.json(
-        { success: false, error: 'userAddressId는 필수입니다.' },
-        { status: 400 }
-      );
-    }
+    console.log('🔍 GET /api/step-results 요청 파라미터:', { userAddressNickname, stepNumber, detail });
 
-    const userAddressIdNum = parseInt(userAddressId);
-    if (isNaN(userAddressIdNum)) {
+    if (!userAddressNickname) {
+      console.log('❌ userAddressNickname이 없음');
       return NextResponse.json(
-        { success: false, error: 'userAddressId는 숫자여야 합니다.' },
+        { success: false, error: 'userAddressNickname는 필수입니다.' },
         { status: 400 }
       );
     }
@@ -28,28 +25,28 @@ export async function GET(request: NextRequest) {
     const repository = new StepResultRepositoryImpl();
     const usecase = new StepResultUsecase(repository);
 
-    // mainNum과 subNum 파싱
-    const mainNumInt = mainNum ? parseInt(mainNum) : undefined;
-    const subNumInt = subNum ? parseInt(subNum) : undefined;
+    // stepNumber와 detail 파싱
+    const stepNumberInt = stepNumber ? parseInt(stepNumber) : undefined;
+    const detailInt = detail ? parseInt(detail) : undefined;
 
-    if (mainNum && isNaN(mainNumInt!)) {
+    if (stepNumber && isNaN(stepNumberInt!)) {
       return NextResponse.json(
-        { success: false, error: 'mainNum은 숫자여야 합니다.' },
+        { success: false, error: 'stepNumber는 숫자여야 합니다.' },
         { status: 400 }
       );
     }
 
-    if (subNum && isNaN(subNumInt!)) {
+    if (detail && isNaN(detailInt!)) {
       return NextResponse.json(
-        { success: false, error: 'subNum은 숫자여야 합니다.' },
+        { success: false, error: 'detail은 숫자여야 합니다.' },
         { status: 400 }
       );
     }
 
     const result = await usecase.getStepResults(
-      userAddressIdNum,
-      mainNumInt,
-      subNumInt
+      userAddressNickname,
+      stepNumberInt,
+      detailInt
     );
 
     if (!result.success) {
@@ -77,19 +74,25 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // 저장 요청 데이터 로깅
+    console.log('🔍 API 엔드포인트에서 받은 저장 요청 데이터:', {
+      userAddressNickname: body.userAddressNickname,
+      stepNumber: body.stepNumber,
+      detail: body.detail,
+      jsonDetails: body.jsonDetails,
+    });
+
     const errors: string[] = [];
-    if (!body.userAddressId) {
-      errors.push('userAddressId는 필수입니다.');
+    if (!body.userAddressNickname) {
+      errors.push('userAddressNickname는 필수입니다.');
     }
 
-    // stepId 또는 mainNum+subNum 중 하나는 필요
-    if (!body.stepId && (!body.mainNum || !body.subNum)) {
-      errors.push('stepId 또는 mainNum+subNum이 필요합니다.');
+    // stepId 또는 stepNumber+detail 중 하나는 필요
+    if (!body.stepId && (!body.stepNumber || !body.detail)) {
+      errors.push('stepId 또는 stepNumber+detail이 필요합니다.');
     }
 
-    if (!body.details) {
-      errors.push('details는 필수입니다.');
-    }
+    // jsonDetails가 없어도 위험도 검사 데이터가 직접 전달되므로 검증 제거
 
     if (errors.length > 0) {
       return NextResponse.json(
@@ -98,9 +101,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const userAddressId = await getUserAddressId(body.userAddressNickname);
+
+    if (userAddressId) {
+      body.userAddressId = userAddressId;
+    }
+
+    // 백엔드에 전달할 데이터 구성 (메타데이터 + 위험도 검사 데이터)
+    const backendData = {
+      userAddressId: body.userAddressId,
+      stepNumber: body.stepNumber,
+      detail: body.detail,
+      jsonDetails: body.jsonDetails, // jsonDetails 필드에서 위험도 검사 데이터 가져오기
+    };
+
     const repository = new StepResultRepositoryImpl();
     const usecase = new StepResultUsecase(repository);
-    const result = await usecase.upsertStepResult(body);
+    const result = await usecase.upsertStepResult(backendData);
 
     if (!result.success) {
       return NextResponse.json(

@@ -1,85 +1,75 @@
-name: Deploy (Production)
+name: Deploy to Production
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main # main 브랜치에 push(merge)될 때 자동 실행
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Deploy to Production via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Deploy via SSH (Password Login)
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
-          port: ${{ secrets.SSH_PORT }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
-          script_stop: true
-          command_timeout: 30m
-          debug: true
+          port: ${{ secrets.SSH_PORT }}
           script: |
             set -e
-            APP_NAME=bogam-app
-            PORT=3121
-            WORKDIR=${WORKDIR:-/home/${{ secrets.SSH_USER }}/BoGam}
 
-            cd "${WORKDIR}"
+            echo "🚀 Starting deployment..."
 
-            echo "[1/6] Git pull"
-            git fetch --all --prune
-            git checkout main
-            git pull origin main --ff-only
+            cd /home/bogam123/bogam
 
-            echo "[2/6] Install dependencies"
-            rm -rf node_modules
+            # 레포 주소
+            REPO_URL="https://github.com/FRONT-END-BOOTCAMP-PLUS-5/BoGam.git"
+
+            # 릴리즈 폴더 생성
+            mkdir -p releases
+            SHA=$(git ls-remote "$REPO_URL" main | awk '{print $1}')
+            NEW="releases/$SHA"
+
+            echo "📦 New release: $NEW"
+
+            # 1. 최신 코드 클론
+            git clone -b main --depth=1 "$REPO_URL" "$NEW"
+
+            # 2. 환경 변수 복사
+            cp /home/bogam123/bogam/env/.env "$NEW/.env"
+
+            # 3. 의존성 설치
+            cd "$NEW"
             npm ci
 
-            echo "[3/6] Prisma"
+            # 4. Prisma 마이그레이션 & Generate
             npx prisma generate
             npx prisma migrate deploy
 
-            echo "[4/6] Build"
-            rm -rf .next
+            # 5. Next.js 빌드
             npm run build
 
-            echo "[5/6] PM2 reload/start"
-            if pm2 describe "${APP_NAME}" > /dev/null; then
-              pm2 reload "${APP_NAME}"
-            else
-              pm2 start npm --name "${APP_NAME}" -- start -- -p ${PORT} -H 0.0.0.0
-            fi
+            # 6. current 및 BoGam 심볼릭 링크 갱신
+            cd /home/bogam123/bogam
+            ln -sfn "$NEW" current
+            ln -sfn "$PWD/current" /home/bogam123/BoGam
+
+            # 7. PM2 재시작 (무중단)
+            pm2 delete bogam-app || true
+            export NODE_ENV=production
+            pm2 start npm --name bogam-app --cwd /home/bogam123/BoGam -- start -- -p 3121 -H 0.0.0.0
             pm2 save
 
-            echo "[6/6] Health check"
-            curl -fsS "http://127.0.0.1:${PORT}/" > /dev/null || (echo "❌ Health check failed" && exit 1)
-
-      - name: Show PM2 status (always)
-        if: always()
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          port: ${{ secrets.SSH_PORT }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          script: |
-            pm2 list
-            pm2 describe bogam-app || true
-
-      - name: Tail PM2 logs on failure
-        if: failure()
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          port: ${{ secrets.SSH_PORT }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          script: |
-            echo "=== STDOUT ==="
-            pm2 logs bogam-app --lines 200 || true
-            echo "=== STDERR (err only) ==="
-            pm2 logs bogam-app --err --lines 200 || true
+            # 8. 헬스체크
+            echo "🔍 Checking health..."
+            if curl -fsS "http://127.0.0.1:3121/" > /dev/null; then
+              echo "✅ 배포 완료"
+            else
+              echo "❌ 실행 실패"
+              exit 1
+            fi

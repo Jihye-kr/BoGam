@@ -4,7 +4,7 @@ import {
   BaseTaxCertRequest,
   TaxCertTwoWayRequest,
 } from '../dtos/GetTaxCertRequestDto';
-import { GetTaxCertResponseDto } from '../dtos/GetTaxCertResponseDto';
+import { GetTaxCertResponseDto, CodefResponse } from '../dtos/GetTaxCertResponseDto';
 
 /**
  * 납세증명서 조회 Usecase
@@ -18,38 +18,99 @@ export class GetTaxCertUsecase {
     request: GetTaxCertRequestDto
   ): Promise<GetTaxCertResponseDto> {
     const startTime = Date.now();
+    const requestId = `usecase-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    console.log(`🚀 [${requestId}] GetTaxCertUsecase 시작`);
+    //console.log(request);
+    //console.log(`📝 [${requestId}] 요청 데이터 분석:`, request);
 
     try {
-      let response: GetTaxCertResponseDto;
+      let response: {
+        success: boolean;
+        message: string;
+        data: CodefResponse;
+      };
 
       // 2-way 인증 요청인지 확인
-      if (this.isTwoWayRequest(request)) {
+      const isTwoWay = this.isTwoWayRequest(request);
+      console.log(`🔍 [${requestId}] 2-way 인증 요청 여부: ${isTwoWay}`);
+
+      if (isTwoWay) {
         // 추가인증 요청
+        console.log(`⏳ [${requestId}] 2-way 인증 요청 처리 시작`);
         const twoWayRequest = request as TaxCertTwoWayRequest;
-        response = await this.taxCertRepository.requestTaxCertTwoWay(
+        console.log(`📋 [${requestId}] 2-way 인증 요청 상세:`, {
+          jobIndex: twoWayRequest.twoWayInfo?.jobIndex,
+          threadIndex: twoWayRequest.twoWayInfo?.threadIndex,
+          jti: twoWayRequest.twoWayInfo?.jti,
+          twoWayTimestamp: twoWayRequest.twoWayInfo?.twoWayTimestamp,
+          simpleAuth: twoWayRequest.simpleAuth,
+          hasSignedData: !!twoWayRequest.signedData,
+          hasExtraInfo: !!twoWayRequest.extraInfo
+        });
+        
+        const codefResponse = await this.taxCertRepository.requestTaxCertTwoWay(
           twoWayRequest
         );
+        console.log("codefResponse", codefResponse);
+        response = { 
+          success: true, 
+          message: '2-way 인증 요청 완료', 
+          data: codefResponse as CodefResponse 
+        };
+        console.log(`✅ [${requestId}] 2-way 인증 요청 완료`);
       } else {
         // 기본 요청
+        console.log(`🌐 [${requestId}] 기본 납세증명서 요청 처리 시작`);
         const baseRequest = request as BaseTaxCertRequest;
-        response = await this.taxCertRepository.requestTaxCert(baseRequest);
+        
+        const codefResponse = await this.taxCertRepository.requestTaxCert(baseRequest);
+        console.log("codefResponse", codefResponse);
+        response = { 
+          success: true, 
+          message: '기본 요청 완료', 
+          data: codefResponse as CodefResponse
+        };
+        //console.log(`✅ [${requestId}] 기본 요청 완료`, codefResponse);
       }
 
       const duration = Date.now() - startTime;
+      
+      // 응답 데이터 분석
+      //console.log(`📊 [${requestId}] 응답 데이터 분석:`, response.data);
 
+      // 2-way 인증 필요 여부 확인
+      const requiresTwoWay = this.requiresTwoWayAuth(response);
+      if (requiresTwoWay) {
+        console.log(`⏳ [${requestId}] 2-way 인증이 필요합니다`);
+        const twoWayInfo = this.extractTwoWayInfo(response);
+        if (twoWayInfo) {
+          console.log(`📋 [${requestId}] 2-way 인증 정보:`, twoWayInfo);
+        }
+      }
+
+      if (response.data?.result?.message) {
+        response.data.result.message = response.data.result.message.split('+').join(' ');
+      }
+
+      // console.log(`✅ [${requestId}] GetTaxCertUsecase 성공 완료 (${duration}ms)`);
+      console.log("response", response);
       return {
         success: true,
         message: '납세증명서 조회 요청이 완료되었습니다.',
-        data: response.data,
+        data: response.data as CodefResponse,
         duration,
       };
     } catch (error) {
       const duration = Date.now() - startTime;
 
-      console.error('❌ 납세증명서 CODEF API 요청 오류:', {
+      console.error(`💥 [${requestId}] GetTaxCertUsecase 예외 발생:`, {
         duration: `${duration}ms`,
         error: error instanceof Error ? error.message : '알 수 없는 오류',
         stack: error instanceof Error ? error.stack : undefined,
+        requestType: this.isTwoWayRequest(request) ? '2-way' : '기본',
+        organization: request.organization,
+        loginType: request.loginType
       });
 
       return {
@@ -60,6 +121,9 @@ export class GetTaxCertUsecase {
             : '납세증명서 CODEF API 호출 중 오류가 발생했습니다.',
         duration,
       };
+    } finally {
+      // const totalDuration = Date.now() - startTime;
+      // console.log(`🏁 [${requestId}] GetTaxCertUsecase 종료 (총 소요시간: ${totalDuration}ms)`);
     }
   }
 
@@ -123,7 +187,7 @@ export class GetTaxCertUsecase {
   /**
    * API 성공 여부 확인 (CODEF 기준)
    */
-  isSuccess(response: GetTaxCertResponseDto): boolean {
+  isSuccess(response: { data?: { result?: { code?: string } } }): boolean {
     return response.data?.result?.code === 'CF-00000';
   }
 

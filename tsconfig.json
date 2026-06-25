@@ -23,7 +23,10 @@
       "@be/*": ["./backend/*"],
       "@utils/*": ["./utils/*"],
       "@libs/*": ["./libs/*"],
-      "@prisma/*": ["./prisma/*"]
+      "@prisma/*": ["./prisma/*"],
+      "@/types/*": ["./types/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@metadata/*": ["./metadata/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

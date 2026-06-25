@@ -1,54 +1,80 @@
 import { prisma } from '@utils/prisma';
 import { UserRepository } from '@be/domain/repository/UserRepository';
 import { UserEntity } from '@be/domain/entities/User';
-import { UserInfo } from '@be/applications/users/dtos/UserDto';
 
 export class UserRepositoryImpl implements UserRepository {
-  async findByNickname(nickname: string): Promise<UserInfo | null> {
+  async findByNickname(nickname: string): Promise<UserEntity | null> {
     const user = await prisma.user.findFirst({
       where: { nickname },
-      select: { id: true, nickname: true },
+      select: {
+        id: true,
+        name: true,
+        nickname: true,
+        username: true,
+        password: true,
+        pinNumber: true,
+        phoneNumber: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     if (!user) return null;
 
-    return {
-      id: user.id,
-      nickname: user.nickname,
-    };
+    return new UserEntity(
+      user.id,
+      user.name,
+      user.nickname,
+      user.username,
+      user.password,
+      user.pinNumber,
+      user.phoneNumber,
+      user.createdAt,
+      user.updatedAt
+    );
   }
 
-  async findByUserId(userId: string): Promise<UserInfo | null> {
+  async findByUserId(userId: string): Promise<UserEntity | null> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, nickname: true },
+      select: {
+        id: true,
+        name: true,
+        nickname: true,
+        username: true,
+        password: true,
+        pinNumber: true,
+        phoneNumber: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     if (!user) return null;
 
-    return {
-      id: user.id,
-      nickname: user.nickname,
-    };
+    return new UserEntity(
+      user.id,
+      user.name,
+      user.nickname,
+      user.username,
+      user.password,
+      user.pinNumber,
+      user.phoneNumber,
+      user.createdAt,
+      user.updatedAt
+    );
   }
 
   async create(userData: {
-    name?: string;
-    nickname?: string;
-    username?: string;
-    password?: string;
-    pinNumber?: string;
-    phoneNumber?: string;
+    name: string;
+    nickname: string;
+    username: string;
+    password: string;
+    pinNumber: string;
+    phoneNumber: string;
   }): Promise<UserEntity> {
     const user = await prisma.user.create({
-      data: {
-        name: userData.name!,
-        nickname: userData.nickname!,
-        username: userData.username!,
-        password: userData.password!,
-        pinNumber: userData.pinNumber!,
-        phoneNumber: userData.phoneNumber!,
-      },
+      data: userData,
     });
 
     return new UserEntity(
@@ -58,7 +84,9 @@ export class UserRepositoryImpl implements UserRepository {
       user.username,
       user.password,
       user.pinNumber,
-      user.phoneNumber
+      user.phoneNumber,
+      user.createdAt,
+      user.updatedAt
     );
   }
 
@@ -87,7 +115,9 @@ export class UserRepositoryImpl implements UserRepository {
       user.username,
       user.password,
       user.pinNumber,
-      user.phoneNumber
+      user.phoneNumber,
+      user.createdAt,
+      user.updatedAt
     );
   }
 
@@ -97,8 +127,33 @@ export class UserRepositoryImpl implements UserRepository {
         where: { id },
       });
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
+  }
+
+  async deleteByNickname(nickname: string): Promise<boolean> {
+    try {
+      await prisma.user.delete({
+        where: { nickname },
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async isNicknameTaken(nickname: string): Promise<boolean> {
+    const user = await prisma.user.findUnique({
+      where: { nickname },
+    });
+    return !!user;
+  }
+
+  async isUsernameTaken(username: string): Promise<boolean> {
+    const user = await prisma.user.findUnique({
+      where: { username },
+    });
+    return !!user;
   }
 }

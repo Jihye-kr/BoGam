@@ -3,49 +3,61 @@
 'use client';
 import '@/globals.css';
 import { useState } from 'react';
-import { Eye, EyeClosed } from 'lucide-react';
-import styles from '@/(anon)/_components/common/forms/Forms.module.css';
+import { Eye, EyeOff } from 'lucide-react';
+import { styles } from '@/(anon)/_components/common/forms/Forms.styles';
 
 type Props = {
   id: string;
   placeholder?: string;
   error?: boolean;
-  onChange?: React.ChangeEventHandler<HTMLInputElement>;
-};
+} & React.InputHTMLAttributes<HTMLInputElement>;
 
 export default function PasswordInput({
   id,
   placeholder,
   error,
-  onChange,
+  ...rest
 }: Props) {
   const [show, setShow] = useState(false);
+
   return (
     <div className='relative'>
       <input
         id={id}
+        name={rest.name}
         type={show ? 'text' : 'password'}
         placeholder={placeholder}
-        onChange={onChange}
         className={[
           styles.inputBase,
           error ? styles.inputError : '',
           'pr-10',
         ].join(' ')}
         autoComplete='new-password'
+        {...rest}
       />
-      <button
-        type='button'
-        className={styles.eyeBtn}
-        onClick={() => setShow((v) => !v)}
-        aria-label={show ? '비밀번호 숨기기' : '비밀번호 보기'}
-      >
-        {show ? (
-          <EyeClosed width={18} height={18} />
-        ) : (
+      {show ? (
+        <button
+          type='button'
+          className={styles.eyeBtn}
+          onClick={() => {
+            setShow(false);
+          }}
+          aria-label='비밀번호 가리기'
+        >
+          <EyeOff width={18} height={18} />
+        </button>
+      ) : (
+        <button
+          type='button'
+          className={styles.eyeBtn}
+          onClick={() => {
+            setShow(true);
+          }}
+          aria-label='비밀번호 보여주기'
+        >
           <Eye width={18} height={18} />
-        )}
-      </button>
+        </button>
+      )}
     </div>
   );
 }
