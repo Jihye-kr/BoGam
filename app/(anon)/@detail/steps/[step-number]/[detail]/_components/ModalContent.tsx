@@ -17,7 +17,6 @@ import { BrokerContainer } from '@/(anon)/@detail/steps/[step-number]/[detail]/_
 import { TransactionSearchWrapperRef } from './contents/TransactionSearchWrapper';
 import { TransactionSearchContainer } from '@/(anon)/@detail/steps/[step-number]/[detail]/_components/contents/transactionSearch/transactionSearchContainer/TransactionSearchContainer';
 import { PageIndicator } from './PageIndicator';
-import CombinedContent from './contents/CombinedContent';
 
 // RegionData 타입 정의 (기존 호환성을 위해 유지)
 interface RegionData {
