@@ -23,6 +23,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (session.user.isGuest) {
+      return NextResponse.json(
+        { success: false, message: '게스트는 주소를 저장할 수 없습니다.' },
+        { status: 403 }
+      );
+    }
+
     const body: AddUserAddressRequestDto = await request.json();
 
     // 필수 필드 검증
@@ -71,6 +78,13 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: '로그인이 필요합니다.' },
         { status: 401 }
+      );
+    }
+
+    if (session.user.isGuest) {
+      return NextResponse.json(
+        { success: false, message: '게스트는 주소를 수정할 수 없습니다.' },
+        { status: 403 }
       );
     }
 
@@ -124,6 +138,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: '로그인이 필요합니다.' },
         { status: 401 }
+      );
+    }
+
+    if (session.user.isGuest) {
+      return NextResponse.json(
+        { success: false, message: '게스트는 주소를 삭제할 수 없습니다.' },
+        { status: 403 }
       );
     }
 

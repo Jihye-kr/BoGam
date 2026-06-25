@@ -17,6 +17,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    if (session.user.isGuest) {
+      return NextResponse.json(
+        { success: false, message: '게스트는 주소를 변경할 수 없습니다.' },
+        { status: 403 }
+      );
+    }
+
     const body: TogglePrimaryAddressRequestDto = await request.json();
 
     // 필수 필드 검증
