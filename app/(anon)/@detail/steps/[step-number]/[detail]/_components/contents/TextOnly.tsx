@@ -324,6 +324,24 @@ const TextOnly = ({ data, currentPage }: TextOnlyProps) => {
                 ))}
               </div>
             )}
+            {section.contentSections && section.contentSections.length > 0 && (
+              <div className={styles.contentSectionsContainer}>
+                {section.contentSections.map((contentSection, sectionIndex) => (
+                  <div key={sectionIndex} className={styles.contentSection}>
+                    <div className={styles.sectionSubtitle}>
+                      {contentSection.subtitle}
+                    </div>
+                    <div className={styles.contents}>
+                      {contentSection.contents.map((content: string, contentIndex: number) => (
+                        <p key={contentIndex} className={styles.contentItem}>
+                          {content}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             {section.summary && (
               <div className={styles.summary}>
                 {renderTextWithTooltips(section.summary, section.title || '', 0, 'summary')}
@@ -359,6 +377,42 @@ const TextOnly = ({ data, currentPage }: TextOnlyProps) => {
                           '_blank',
                           'noopener,noreferrer'
                         );
+                      }
+                    }}
+                    fullWidth={button.fullWidth}
+                  >
+                    {button.text}
+                  </Button>
+                ))}
+              </div>
+            )}
+            {section.button && (
+              <div className={styles.buttonContainer}>
+                <Button
+                  variant={section.button.variant || 'primary'}
+                  href={section.button.href}
+                  onClick={() => {
+                    if (section.button?.onClick) {
+                      console.log('Button clicked:', section.button.onClick);
+                      // 여기에 onClick 로직 추가 가능
+                    }
+                  }}
+                  fullWidth={section.button.fullWidth}
+                >
+                  {section.button.text}
+                </Button>
+              </div>
+            )}
+            {section.buttons && section.buttons.length > 0 && (
+              <div className={styles.buttonsContainer}>
+                {section.buttons.map((button, index) => (
+                  <Button
+                    key={index}
+                    variant={button.variant || 'primary'}
+                    href={button.href}
+                    onClick={() => {
+                      if (button.href) {
+                        window.open(button.href, '_blank', 'noopener,noreferrer');
                       }
                     }}
                     fullWidth={button.fullWidth}

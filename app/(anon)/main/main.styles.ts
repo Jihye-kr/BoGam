@@ -80,3 +80,4 @@ export const styles = {
   // 위치 상태 아이콘
   locationStatusIcon: 'inline-block w-4 h-4 mr-1',
 } as const;
+

@@ -27,6 +27,9 @@ export default async function MainPage() {
             </span>
           </div>
         </div>
+        <FloatingButton />
+
+        <div className={styles.buttonArea}></div>
       </div>
 
       <div className={styles.content}>

@@ -95,6 +95,7 @@ export default function ModalContent({
       case 'TransactionSearchContainer':
         return <TransactionSearchContainer />;
       default:
+        console.log('renderSwiperContent - default case, dataType:', dataType);
         return null;
     }
   };
