@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useId } from 'react';
 import { styles } from './InfoToolTip.styles';
+import { useTooltipStore } from '@libs/stores/tooltipStore';
 
 interface InfoToolTipProps {
   term: string;
@@ -12,78 +13,23 @@ export default function InfoToolTip({
   term,
   definition,
 }: InfoToolTipProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({
-    top: 0,
-    left: 0,
-    arrowDirection: 'bottom',
-  });
+  const { activeTooltipTerm, setActiveTooltip, closeAllTooltips } = useTooltipStore();
+  
+  // 현재 툴팁이 활성화되어 있는지 확인
+  const isVisible = activeTooltipTerm === term;
+  
   const tooltipRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const termRef = useRef<HTMLSpanElement>(null);
 
-  const calculateTooltipPosition = useCallback(() => {
-    if (!containerRef.current) return;
-
-    const containerRect = containerRef.current.getBoundingClientRect();
-    
-    // 모바일 환경을 위한 정확한 뷰포트 크기 계산
-    const viewportHeight = Math.min(window.innerHeight, window.visualViewport?.height || window.innerHeight);
-    const viewportWidth = Math.min(window.innerWidth, window.visualViewport?.width || window.innerWidth);
-    
-    // 툴팁의 예상 높이를 계산 (텍스트 길이 기반)
-    const definitionText = Array.isArray(definition)
-      ? definition.join(' ')
-      : definition;
-    const estimatedTooltipHeight =
-      Math.ceil(definitionText.length / 50) * 1.5 + 2.5;
-    const estimatedTooltipWidth = Math.min(
-      Math.max(12.5, definitionText.length * 0.5),
-      Math.min(18.75, viewportWidth / 16 - 1.25)
-    );
-
-    let top = 0;
-    let left = 0;
-    let arrowDirection = 'bottom';
-
-    // 툴팁 높이를 픽셀로 변환
-    const tooltipHeightPx = estimatedTooltipHeight * 16;
-    
-    // 단순하게: 위아래 공간 중 더 넓은 쪽에 툴팁 배치
-    const spaceBelow = viewportHeight - containerRect.bottom;
-    const spaceAbove = containerRect.top;
-    const gap = 3; // 글씨와 툴팁 사이 간격
-    const textHeight = 16; // 글씨 높이 (16px)
-    
-
-    // 기본적으로 아래쪽에 배치 시도
-    if (spaceBelow >= tooltipHeightPx + gap) {
-      // 아래쪽에 충분한 공간이 있으면 아래에 배치
-      top = containerRect.bottom + gap;
-      arrowDirection = 'bottom';
-    } else if (spaceAbove >= tooltipHeightPx + gap + textHeight) {
-      // 위쪽에 충분한 공간이 있으면 위에 배치 (글씨 높이만큼 추가 간격)
-      top = containerRect.top - tooltipHeightPx - gap - textHeight*4.5;
-      arrowDirection = 'top';
-    } else {
-      // 위아래 모두 공간이 부족하면 아래에 배치 (스크롤 가능)
-      top = containerRect.bottom + gap;
-      arrowDirection = 'bottom';
+  // term이 변경될 때마다 ref 업데이트
+  useEffect(() => {
+    if (termRef.current) {
+      termRef.current.textContent = term;
     }
-
-    // 가로 위치 계산 (중앙 정렬)
-    const tooltipWidthPx = estimatedTooltipWidth * 16;
-    left = Math.max(
-      15,
-      Math.min(
-        containerRect.left +
-          containerRect.width / 2 -
-          tooltipWidthPx / 2,
-        viewportWidth - tooltipWidthPx - 15
-      )
-    );
-
-    setTooltipPosition({ top, left, arrowDirection });
-  }, [definition]);
+    // term이 변경되면 툴팁 숨기기
+    setActiveTooltip(null);
+  }, [term, setActiveTooltip]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -93,53 +39,79 @@ export default function InfoToolTip({
           tooltipRef.current &&
           !tooltipRef.current.contains(event.target as Node)
       ) {
-        setIsVisible(false);
+        setActiveTooltip(null);
+      }
+    };
+
+    const handleGlobalClick = (event: MouseEvent) => {
+      // 툴팁 영역 외부 클릭 시 모든 툴팁 닫기
+      if (
+        !containerRef.current?.contains(event.target as Node) &&
+        !tooltipRef.current?.contains(event.target as Node)
+      ) {
+        closeAllTooltips();
+      }
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      // 터치 시 툴팁 영역 외부를 터치했는지 확인
+      if (
+        !containerRef.current?.contains(event.target as Node) &&
+        !tooltipRef.current?.contains(event.target as Node)
+      ) {
+        closeAllTooltips();
       }
     };
 
     const handleScroll = () => {
       if (isVisible) {
-        // 스크롤 시 즉시 위치 업데이트 (애니메이션 없음)
-        calculateTooltipPosition();
+        // 스크롤 시 툴팁 닫기
+        setActiveTooltip(null);
       }
     };
 
     const handleResize = () => {
       if (isVisible) {
-        calculateTooltipPosition();
+        // 리사이즈 시 툴팁 닫기
+        setActiveTooltip(null);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handleGlobalClick);
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', handleResize, { passive: true });
     
     // 모바일 환경을 위한 추가 이벤트
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize);
-      window.visualViewport.addEventListener('scroll', handleScroll);
+      window.visualViewport.addEventListener('scroll', handleResize);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleGlobalClick);
+      document.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
       
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleResize);
-        window.visualViewport.removeEventListener('scroll', handleScroll);
+        window.visualViewport.removeEventListener('scroll', handleResize);
       }
     };
-  }, [isVisible, calculateTooltipPosition]);
+  }, [isVisible, setActiveTooltip, closeAllTooltips]);
 
   const handleTermClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    
     if (!isVisible) {
-      // 먼저 위치를 계산하고 툴팁을 표시
-      calculateTooltipPosition();
-      setIsVisible(true);
+      // 툴팁을 표시하고 즉시 위치 계산
+      setActiveTooltip(term);
+      // DOM 업데이트 후 위치 계산을 위해 requestAnimationFrame 사용
     } else {
-      setIsVisible(false);
+      setActiveTooltip(null);
     }
   };
 
@@ -173,20 +145,14 @@ export default function InfoToolTip({
 
   return (
     <div className={styles.tooltipContainer} ref={containerRef}>
-      <span className={styles.highlightedText} onClick={handleTermClick}>
+      <span className={styles.highlightedText} onClick={handleTermClick} ref={termRef}>
         {term}
-        {/* 툴팁이 표시될 때만 DOM에 추가 */}
+        {/* 툴팁을 화면 중앙에 고정 배치 */}
         {isVisible && (
           <div
             ref={tooltipRef}
             className={`${styles.tooltip} ${styles.tooltipVisible}`}
-            style={{
-              top: `${tooltipPosition.top}px`,
-              left: `${tooltipPosition.left}px`,
-            }}
           >
-            <div className={getArrowClasses()}></div>
-            <div className={getArrowBorderClasses()}></div>
             <div className={styles.tooltipText}>{renderDefinition()}</div>
           </div>
         )}

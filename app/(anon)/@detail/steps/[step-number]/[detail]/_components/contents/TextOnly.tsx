@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import styles from './TextOnly.styles';
 import { useGetStepResult } from '@/hooks/useStepResultQueries';
 import { useStepResultMutations } from '@/hooks/useStepResultMutations';
 import CircularIconBadge from '@/(anon)/_components/common/circularIconBadges/CircularIconBadge';
+import InfoToolTip from '@/(anon)/_components/common/infoToolTip/InfoToolTip';
 import { useUserAddressStore } from '@libs/stores/userAddresses/userAddressStore';
 import { parseStepUrl } from '@utils/stepUrlParser';
+import { loadTooltipWords, applyTooltipsToText } from '@utils/tooltipUtils';
 import Button from '@/(anon)/_components/common/button/Button';
 import LoadingOverlay from '@/(anon)/_components/common/loading/LoadingOverlay';
 
@@ -57,6 +59,104 @@ const TextOnly = ({ data, currentPage }: TextOnlyProps) => {
 
   // 초기화 여부를 추적하는 ref
   const hasInitialized = useRef(false);
+
+  // tooltip 단어들을 로드
+  useEffect(() => {
+    const loadTooltips = async () => {
+      try {
+        const tooltipData = await loadTooltipWords();
+        setTooltipWords(tooltipData.tooltips);
+      } catch (error) {
+        console.error('Tooltip 로드 에러:', error);
+      }
+    };
+    loadTooltips();
+  }, []);
+
+  // tooltip이 적용된 텍스트를 렌더링하는 함수
+  const renderTextWithTooltips = (text: string, sectionTitle: string, index: number, type: 'contents' | 'contentSections' | 'summary' = 'contents') => {
+    const key = `${type}_${sectionTitle}_${index}`;
+    const parts = processedTexts.get(key) || [text];
+    
+    return parts.map((part, partIndex) => {
+      if (typeof part === 'string') {
+        return part;
+      } else {
+        return (
+          <InfoToolTip
+            key={partIndex}
+            term={part.term}
+            definition={part.definition}
+          />
+        );
+      }
+    });
+  };
+
+  // 모든 텍스트를 한 번에 모아서 툴팁을 적용하는 함수
+  const processAllTexts = () => {
+    const allTexts: string[] = [];
+    
+    // 모든 섹션의 텍스트를 수집
+    data.forEach(section => {
+      if (section.contents) {
+        allTexts.push(...section.contents);
+      }
+      if (section.contentSections) {
+        section.contentSections.forEach(contentSection => {
+          if (contentSection.contents) {
+            allTexts.push(...contentSection.contents);
+          }
+        });
+      }
+      if (section.summary) {
+        allTexts.push(section.summary);
+      }
+    });
+    
+    // 모든 텍스트를 하나로 합치고 툴팁 적용
+    const combinedText = allTexts.join('\n');
+    const processedParts = applyTooltipsToText(combinedText, tooltipWords);
+    
+    // 처리된 결과를 원래 구조에 맞게 분배
+    const textMap = new Map<string, (string | { term: string; definition: string | string[] })[]>();
+    let currentIndex = 0;
+    
+    data.forEach(section => {
+      if (section.contents) {
+        section.contents.forEach((content, contentIndex) => {
+          const key = `contents_${section.title}_${contentIndex}`;
+          const contentLength = content.length;
+          const parts = processedParts.slice(currentIndex, currentIndex + contentLength);
+          textMap.set(key, parts);
+          currentIndex += contentLength;
+        });
+      }
+      if (section.contentSections) {
+        section.contentSections.forEach((contentSection, sectionIndex) => {
+          contentSection.contents.forEach((content, contentIndex) => {
+            const key = `contentSections_${section.title}_${sectionIndex}_${contentIndex}`;
+            const contentLength = content.length;
+            const parts = processedParts.slice(currentIndex, currentIndex + contentLength);
+            textMap.set(key, parts);
+            currentIndex += contentLength;
+          });
+        });
+      }
+      if (section.summary) {
+        const key = `summary_${section.title}`;
+        const summaryLength = section.summary.length;
+        const parts = processedParts.slice(currentIndex, currentIndex + summaryLength);
+        textMap.set(key, parts);
+        currentIndex += summaryLength;
+      }
+    });
+    
+    return textMap;
+  };
+
+  // 모든 텍스트를 처리
+  const processedTexts = processAllTexts();
 
   // useStepResultMutations 훅 사용
   const { upsertStepResult, removeQueries } = useStepResultMutations();
@@ -197,9 +297,9 @@ const TextOnly = ({ data, currentPage }: TextOnlyProps) => {
               <div className={styles.contents}>
                 {section.contents.map(
                   (content: string, contentIndex: number) => (
-                    <p key={contentIndex} className={styles.contentItem}>
-                      {content}
-                    </p>
+                    <div key={contentIndex} className={styles.contentItem}>
+                      {renderTextWithTooltips(content, section.title || '', contentIndex, 'contents')}
+                    </div>
                   )
                 )}
               </div>
@@ -214,9 +314,9 @@ const TextOnly = ({ data, currentPage }: TextOnlyProps) => {
                     <div className={styles.contents}>
                       {contentSection.contents.map(
                         (content: string, contentIndex: number) => (
-                          <p key={contentIndex} className={styles.contentItem}>
-                            {content}
-                          </p>
+                          <div key={contentIndex} className={styles.contentItem}>
+                            {renderTextWithTooltips(content, section.title || '', contentIndex, 'contentSections')}
+                          </div>
                         )
                       )}
                     </div>
@@ -225,7 +325,9 @@ const TextOnly = ({ data, currentPage }: TextOnlyProps) => {
               </div>
             )}
             {section.summary && (
-              <div className={styles.summary}>{section.summary}</div>
+              <div className={styles.summary}>
+                {renderTextWithTooltips(section.summary, section.title || '', 0, 'summary')}
+              </div>
             )}
             {section.button && (
               <div className={styles.buttonContainer}>
