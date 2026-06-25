@@ -9,6 +9,7 @@ import Table from './contents/Table';
 import List from './contents/List';
 import CheckListGroup from './contents/CheckListGroup';
 import RadioGroup from './contents/RadioGroup';
+import CombinedContent from './contents/CombinedContent';
 import { parseStepUrl } from '@utils/stepUrlParser';
 import { LegacyContentSection, StepContentData } from './contents/types';
 import { RealEstateContainer } from '@/(anon)/@detail/steps/[step-number]/[detail]/_components/contents/realEstate/realEstateContainer/RealEstateContainer';
