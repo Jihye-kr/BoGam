@@ -8,7 +8,8 @@ declare module 'next-auth' {
       email?: string | null;
       username?: string;
       nickname?: string;
-      isIncomplete?: boolean; //SSO 회원가입 시 추가정보 입력
+      isIncomplete?: boolean;
+      isGuest?: boolean;
     };
   }
 
@@ -19,6 +20,7 @@ declare module 'next-auth' {
     image?: string | null;
     username?: string;
     nickname?: string;
+    isGuest?: boolean;
   }
 }
 
@@ -27,6 +29,7 @@ declare module 'next-auth/jwt' {
     id: string;
     username?: string;
     nickname?: string;
-    isIncomplete?: boolean; //SSO 회원가입 시 추가정보 입력
+    isIncomplete?: boolean;
+    isGuest?: boolean;
   }
 }

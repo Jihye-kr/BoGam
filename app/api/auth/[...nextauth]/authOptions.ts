@@ -6,6 +6,23 @@ import KakaoProvider from 'next-auth/providers/kakao';
 
 export const authOptions: AuthOptions = {
   providers: [
+    // ✅ 게스트 로그인 (DB 불필요)
+    CredentialsProvider({
+      id: 'guest',
+      name: 'Guest',
+      credentials: {},
+      async authorize() {
+        return {
+          id: 'guest',
+          name: '게스트',
+          email: 'guest@bogam.local',
+          username: 'guest',
+          nickname: '게스트',
+          isGuest: true,
+        };
+      },
+    }),
+
     // ✅ 일반 로그인
     CredentialsProvider({
       name: 'Credentials',
@@ -54,6 +71,16 @@ export const authOptions: AuthOptions = {
 
   callbacks: {
     async jwt({ token, user, account, profile }) {
+      // ✅ 게스트 로그인
+      if (user && account?.provider === 'guest') {
+        token.id = 'guest';
+        token.username = 'guest';
+        token.nickname = '게스트';
+        token.isGuest = true;
+        token.isIncomplete = false;
+        return token;
+      }
+
       // ✅ 일반 로그인
       if (user && account?.provider !== 'kakao') {
         token.id = user.id;
@@ -101,6 +128,7 @@ export const authOptions: AuthOptions = {
         session.user.username = token.username;
         session.user.nickname = token.nickname;
         session.user.isIncomplete = token.isIncomplete;
+        session.user.isGuest = token.isGuest;
       }
       return session;
     },

@@ -81,7 +81,8 @@ export async function middleware(req: NextRequest) {
   // 2. 인증 상태 확인
   const token = await getToken({ req });
   const isAuthenticated = !!token;
-  const isIncomplete = token?.isIncomplete; //SSO로 회원가입에 필요한 모든 정보가 입력되기 전 상태
+  const isIncomplete = token?.isIncomplete;
+  const isGuest = token?.isGuest;
 
   const isOnExtraPage = req.nextUrl.pathname.startsWith('/signup/extra');
 
@@ -91,6 +92,13 @@ export async function middleware(req: NextRequest) {
 
   // 4. 로그인 사용자가 /signin, /signup 접근 시 /main으로 리디렉트
   if (isAuthenticated && (pathname === '/signin' || pathname === '/signup')) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/main';
+    return NextResponse.redirect(url);
+  }
+
+  // 5-A. 게스트 유저는 extra 페이지 접근 불필요
+  if (isAuthenticated && isGuest && isOnExtraPage) {
     const url = req.nextUrl.clone();
     url.pathname = '/main';
     return NextResponse.redirect(url);

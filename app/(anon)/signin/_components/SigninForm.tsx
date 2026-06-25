@@ -12,6 +12,7 @@ import Button from '@/(anon)/_components/common/button/Button';
 import TextInput from '@/(anon)/_components/common/forms/TextInput';
 import PasswordInput from '@/(anon)/_components/common/forms/PasswordInput';
 import { styles } from '@/(anon)/_components/common/forms/Forms.styles';
+import { useGuestLogin } from '@/hooks/useGuestLogin';
 
 const signinSchema = z.object({
   username: z.string().email('올바른 이메일을 입력해주세요.'),
@@ -23,6 +24,7 @@ type SigninInput = z.infer<typeof signinSchema>;
 export default function SigninForm() {
   const router = useRouter();
   const setNickname = useUserStore((state) => state.setNickname);
+  const { loginAsGuest, loading: guestLoading } = useGuestLogin();
 
   const {
     register,
@@ -106,6 +108,19 @@ export default function SigninForm() {
       <Button variant='ghost' href='/signup' fullWidth>
         회원가입
       </Button>
+
+      <div className={styles.divider}>
+        <span>또는</span>
+      </div>
+
+      <button
+        type='button'
+        onClick={loginAsGuest}
+        disabled={guestLoading}
+        className={styles.guestBtn}
+      >
+        {guestLoading ? '입장 중...' : '로그인 없이 둘러보기 →'}
+      </button>
     </form>
   );
 }

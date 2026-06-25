@@ -3,6 +3,7 @@ import { Providers } from './providers';
 import { ConfirmModal } from './(anon)/_components/common/modal/ConfirmModal';
 import Header from '@/(anon)/_components/common/header/Header';
 import PWAInstallPrompt from '@/(anon)/_components/common/PWAInstallPrompt';
+import GuestBanner from '@/(anon)/_components/common/GuestBanner';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -24,8 +25,8 @@ export default function RootLayout({
       </head>
       <body className='font-sans'>
         <Providers>
+          <GuestBanner />
           <Header />
-          {/* <div className='app-shell'>{children}</div> */}
           <div>{children}</div>
 
           <ConfirmModal />

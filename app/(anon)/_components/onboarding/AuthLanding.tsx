@@ -4,8 +4,11 @@ import Image from 'next/image';
 import { styles } from '@/(anon)/_components/onboarding/AuthLanding.styles';
 import Button from '@/(anon)/_components/common/button/Button';
 import { signIn } from 'next-auth/react';
+import { useGuestLogin } from '@/hooks/useGuestLogin';
 
 export default function AuthLanding() {
+  const { loginAsGuest, loading } = useGuestLogin();
+
   return (
     <main className={styles.container}>
       <div className={styles.wrap}>
@@ -28,6 +31,15 @@ export default function AuthLanding() {
         <Button variant='secondary' href='/signin' fullWidth>
           로그인
         </Button>
+
+        {/* 게스트 로그인 */}
+        <button
+          className={styles.guestBtn}
+          onClick={loginAsGuest}
+          disabled={loading}
+        >
+          {loading ? '입장 중...' : '로그인 없이 둘러보기'}
+        </button>
 
         {/* 소셜 로그인 */}
         <div className={styles.socialRow}>

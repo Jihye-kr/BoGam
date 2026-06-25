@@ -45,6 +45,14 @@ export const styles = {
 
   otpEyeBtn: 'flex items-center text-brand-dark-gray w-10 ml-2',
 
+  // 구분선
+  divider:
+    'flex items-center gap-3 text-xs text-brand-light-gray [&>span]:px-2 before:flex-1 before:h-px before:bg-brand-light-gray after:flex-1 after:h-px after:bg-brand-light-gray',
+
+  // 게스트 버튼
+  guestBtn:
+    'w-full text-sm text-gray-400 hover:text-gray-600 py-2 transition-colors text-center',
+
   // 그리드 레이아웃(선택)
   formRow: 'grid grid-cols-1 gap-6 w-[90%] mx-auto',
 };

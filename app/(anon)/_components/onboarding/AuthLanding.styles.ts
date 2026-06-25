@@ -13,7 +13,9 @@ export const styles = {
   
   outline: "w-full py-3 rounded-2xl text-base font-medium flex items-center justify-center bg-transparent text-brand border-[1.5px] border-brand",
   
-  socialRow: "mt-6 flex items-center justify-center gap-6",
+  guestBtn: "w-full mt-2 py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors text-center",
+
+  socialRow: "mt-4 flex items-center justify-center gap-6",
   
   socialBtn: "h-12 w-12 rounded-full flex items-center justify-center overflow-hidden relative outline-none focus-visible:shadow-[0_0_0_3px_rgba(0,0,0,0.15),0_0_0_6px_var(--brand-shadow)] focus-visible:rounded-full",
   
