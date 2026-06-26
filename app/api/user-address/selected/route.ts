@@ -4,8 +4,6 @@ import { UpdateSelectedAddressUsecase } from '@be/applications/users/usecases/Up
 import { GetUserAddressesRepositoryImpl } from '@be/infrastructure/repository/GetUserAddressesRepositoryImpl';
 import { UserRepositoryImpl } from '@be/infrastructure/repository/UserRepositoryImpl';
 
-const GUEST_NICKNAME = 'guest';
-
 // GET: 선택된 주소 조회
 export async function GET(req: NextRequest) {
   try {
@@ -20,10 +18,6 @@ export async function GET(req: NextRequest) {
         },
         { status: 400 }
       );
-    }
-
-    if (userNickname === GUEST_NICKNAME) {
-      return NextResponse.json({ success: true, data: null }, { status: 200 });
     }
 
     // nickname을 userId로 변환

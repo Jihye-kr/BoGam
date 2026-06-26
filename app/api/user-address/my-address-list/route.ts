@@ -16,10 +16,6 @@ export async function GET() {
       );
     }
 
-    if (session.user.isGuest) {
-      return NextResponse.json({ success: true, data: [] }, { status: 200 });
-    }
-
     // Usecase 실행
     const userAddressRepository = new GetUserAddressesRepositoryImpl();
     const userRepository = new UserRepositoryImpl();
