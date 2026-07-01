@@ -40,8 +40,8 @@ export const useGetStepResult = (
     ],
     queryFn: () => stepResultQueryApi.getStepResult(params),
     enabled: !!params.userAddressNickname,
-    staleTime: 0, // 캐시 즉시 무효화
-    gcTime: 10 * 60 * 1000, // 10분
+    staleTime: 5 * 60 * 1000, // 5분
+    gcTime: 10 * 60 * 1000,
   });
 
   return { data, isLoading, isError, refetch };

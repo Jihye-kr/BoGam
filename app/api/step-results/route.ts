@@ -50,6 +50,12 @@ export async function GET(request: NextRequest) {
     );
 
     if (!result.success) {
+      if (result.error === '해당 주소를 찾을 수 없습니다.') {
+        return NextResponse.json(
+          { success: true, data: { results: [], summary: { totalMismatch: 0, totalMatch: 0, totalUnchecked: 0, stepCount: 0, stepNumber: 0 } }, message: result.error },
+          { status: 200 }
+        );
+      }
       return NextResponse.json(
         { success: false, error: result.error },
         { status: 400 }

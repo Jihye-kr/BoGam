@@ -11,7 +11,7 @@ export default function GuestBanner() {
   return (
     <div className="sticky top-0 z-50 bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between text-sm">
       <span className="text-amber-700">
-        👋 게스트 모드입니다. 일부 기능이 제한됩니다.
+        게스트 모드입니다. 일부 기능이 제한됩니다.
       </span>
       <Link
         href="/signup"
