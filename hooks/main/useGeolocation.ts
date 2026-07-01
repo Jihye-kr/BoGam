@@ -54,14 +54,13 @@ export const useGeolocation = (options: UseGeolocationOptions = {}) => {
         error: null,
       });
     } catch (error) {
-      console.error('위치 정보 가져오기 실패:', error);
+      const isPermissionDenied =
+        error instanceof Error &&
+        error.message.includes('거부');
       setState({
         location: mergedOptions.fallbackLocation || null,
         loading: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : '알 수 없는 오류가 발생했습니다.',
+        error: isPermissionDenied ? null : (error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'),
       });
     }
   }, [mergedOptions]);

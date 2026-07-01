@@ -130,26 +130,25 @@ export default function Onboarding({ onSkipToAuth, onDoneToAuth }: Props) {
               </div>
 
               <div className={styles.fixedDots}>
-                <div className={styles.dots}>
-                  {SLIDES.map((_, j) => (
-                    <button
-                      key={j}
-                      className={`${styles.dot} ${
-                        j === i ? styles.dotActive : styles.dotInactive
-                      }`}
-                      onClick={() => go(j)}
-                      aria-label={`slide ${j + 1}`}
-                    />
-                  ))}
-                </div>
+                {SLIDES.map((_, j) => (
+                  <button
+                    key={j}
+                    className={`${styles.dot} ${
+                      j === i ? styles.dotActive : styles.dotInactive
+                    }`}
+                    onClick={() => go(j)}
+                    aria-label={`slide ${j + 1}`}
+                  />
+                ))}
               </div>
-              <div className={styles.fixedStartBtn}>
+
               {idx === last && i === last && (
-                <button className={styles.startBtn} onClick={onDoneToAuth}>
-                  시작하기
-                </button>
+                <div className={styles.fixedStartBtn}>
+                  <button className={styles.startBtn} onClick={onDoneToAuth}>
+                    시작하기
+                  </button>
+                </div>
               )}
-              </div>
             </div>
           ))}
         </div>

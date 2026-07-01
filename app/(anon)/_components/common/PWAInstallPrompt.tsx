@@ -20,7 +20,7 @@ interface NavigatorWithStandalone extends Navigator {
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     // PWA가 이미 설치되어 있는지 확인
@@ -96,8 +96,8 @@ export default function PWAInstallPrompt() {
     setIsInstalled(true); // 프롬프트를 숨김
   };
 
-  // 이미 설치된 경우 프롬프트를 표시하지 않음
-  if (isInstalled) return null;
+  // 로그인된 사용자에게만 표시 (인증 전 페이지에서는 숨김)
+  if (isInstalled || status !== 'authenticated') return null;
 
   return (
     <div className={styles.container}>

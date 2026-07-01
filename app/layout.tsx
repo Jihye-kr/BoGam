@@ -20,8 +20,8 @@ export default function RootLayout({
           content='width=device-width, initial-scale=1, viewport-fit=cover'
         />
         <link rel='manifest' href='/manifest.json' />
-        <link rel='apple-touch-icon' href='/icons/icon-192x192.svg' />
-        <link rel='icon' href='/icons/icon-192x192.svg' />
+        <link rel='apple-touch-icon' href='/icons/apple-touch-icon.png' />
+        <link rel='icon' href='/icons/icon-192x192.png' />
       </head>
       <body className='font-sans'>
         <Providers>

@@ -54,7 +54,9 @@ export default function SignIn() {
           </button>
         </div>
       </section>
-      <SigninForm />
+      <div className="edge-container py-4">
+        <SigninForm />
+      </div>
     </>
   );
 }

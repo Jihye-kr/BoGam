@@ -142,7 +142,6 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     '/api/:path*',
-    // 정적 리소스 경로를 제외한 모든 경로에 미들웨어 실행
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.json).*)',
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.json|sw.js|workbox-.*\\.js|icons/.*|images/.*|models/.*|previews/.*|draco/.*|basis/.*).*)',
   ],
 };

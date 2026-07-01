@@ -54,5 +54,5 @@ export const styles = {
     'w-full text-sm text-gray-400 hover:text-gray-600 py-2 transition-colors text-center',
 
   // 그리드 레이아웃(선택)
-  formRow: 'grid grid-cols-1 gap-6 w-[90%] mx-auto',
+  formRow: 'grid grid-cols-1 gap-6 w-full',
 };

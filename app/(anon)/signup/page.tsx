@@ -39,7 +39,9 @@ export default function Signup() {
           </button>
         </div>
       </section>
-      <SignupForm />
+      <div className="edge-container py-4">
+        <SignupForm />
+      </div>
     </>
   );
 }
